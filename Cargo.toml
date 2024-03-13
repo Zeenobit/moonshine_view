@@ -2,6 +2,10 @@
 name = "moonshine-view"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A solution to separate saved game state from game view for Bevy and Moonshine Save framework."
+homepage = "https://github.com/Zeenobit/moonshine_view"
+repository = "https://github.com/Zeenobit/moonshine_view"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -10,9 +14,9 @@ bevy_app = "0.13.*"
 bevy_ecs = "0.13.*"
 bevy_hierarchy = "0.13.*"
 bevy_utils = "0.13.*"
-moonshine-kind = { path = "../kind" }
-moonshine-save = { path = "../save" }
-moonshine-object = { path = "../object" }
+moonshine-kind = { version = "0.1.*", path = "../kind" }
+moonshine-save = { version = "0.3.*", path = "../save" }
+moonshine-object = { version = "0.1.*", path = "../object" }
 
 [dev-dependencies]
 rand = "*"
