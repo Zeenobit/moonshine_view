@@ -1,0 +1,20 @@
+[package]
+name = "moonshine-view"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy_app = "0.13.*"
+bevy_ecs = "0.13.*"
+bevy_hierarchy = "0.13.*"
+bevy_utils = "0.13.*"
+moonshine-kind = { path = "../kind" }
+moonshine-save = { path = "../save" }
+moonshine-object = { path = "../object" }
+
+[dev-dependencies]
+rand = "*"
+bevy = "0.13.*"
+bevy_vector_shapes = "0.7.0"
