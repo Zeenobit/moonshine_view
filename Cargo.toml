@@ -19,6 +19,6 @@ moonshine-save = { version = "0.3.*", path = "../save" }
 moonshine-object = { version = "0.1.*", path = "../object" }
 
 [dev-dependencies]
-rand = "*"
+rand = "0.8.*"
 bevy = "0.13.*"
 bevy_vector_shapes = "0.7.0"
