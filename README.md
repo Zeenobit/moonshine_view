@@ -1,20 +1,20 @@
 # 👁️ Moonshine View
 
-A generic solution for separating the game view from game logic specifically designed for [Moonshine Save](https://github.com/Zeenobit/moonshine_save) framework.
+A generic solution for separating the game view from game state designed for [Moonshine Save](https://github.com/Zeenobit/moonshine_save) framework.
 
 ## Overview
 
-The Moonshine Save system is intentionally designed to encourage the user to separate the persistent game state from its aesthetic elements. This provides a clear separation of concerns which which has various benefits explained in detail in the [save framework](https://github.com/Zeenobit/moonshine_save#Philosophy) documentation.
+The Moonshine Save system is intentionally designed to encourage the user to separate the persistent game state (model) from its aesthetic elements (view). This provides a clear separation of concerns and has various benefits which are explained in detail in the [save framework](https://github.com/Zeenobit/moonshine_save#Philosophy) documentation.
 
-The main drawback of this approach is that it adds additional boilerplate that the user has to deal with. Typically, the user has to manually spawn/despawn views associated with saved entities and update them accordingly at runtime.
+An issue with this approach is that it adds additional complexity that the developer has to maintain. Typically, this involves manually de/spawning views associated with saved entities and synchronizing them with the game state via systems.
 
-This crate aims to solve this issue by providing a more generic and ergonomic solution for synchronizing the game view with the game state.
+This crate aims to reduce some of this complexity by providing a more generic and ergonomic solution for synchronizing the game view with the game state.
 
 ## Usage
 
 ### Observables
 
-By definition, an observable is any [`Kind`](https://docs.rs/moonshine-kind/latest/moonshine_kind/trait.Kind.html) which implements the `Observe` trait:
+By definition, an observable is any [`Kind`](https://docs.rs/moonshine-kind/latest/moonshine_kind/trait.Kind.html) which implements the `Observe` trait. Typically, this is any entity which has an observable representation in your game.
 
 ```rust
 use bevy::prelude::*;
@@ -26,33 +26,44 @@ struct Bird;
 impl Observe for Bird {
     fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
         let asset_server = world.resource::<AssetServer>();
-        // TODO: Build the Bird view
+        // ...
     }
 }
 ```
 
-You may register your type as an observable when building your `App`:
+You must register your type as an observable when building your [`App`]:
 
 ```rust
-app.add_plugin(ViewPlugin) // Add `ViewPlugin` before registering observables!
-    .register_observable::<Square>();
+# use bevy::prelude::*;
+# use moonshine_view::prelude::*;
+# #[derive(Component)] struct Bird;
+# impl Observe for Bird { fn observe(_: &World, _: Object<Self>, _: &mut ViewBuilder<Self>) {} }
+# let mut app = App::new();
+app.add_plugins(ViewPlugin) // Add `ViewPlugin` before registering observables!
+    .register_observable::<Bird>();
 ```
 
-Note that you can define any kind as observable, and not just components!
+Note that you can define any kind as observable, not just components!
 
 For example:
 
 ```rust
-use bevy::prelude::*;
+# use bevy::prelude::*;
+# use moonshine_view::prelude::*;
+# #[derive(Component)] struct Bird;
+# #[derive(Component)] struct Monkey;
 use moonshine_kind::prelude::*;
-use moonshine_view::prelude::*;
 
-struct Creature {
+struct Creature;
+
+impl Kind for Creature {
     type Filter = Or<(With<Monkey>, With<Bird>)>;
 }
 
 impl Observe for Creature {
-    ...
+    fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+        // ...
+    }
 }
 ```
 
@@ -64,25 +75,41 @@ This happens automatically. Any entity with an `Observer<T>` component is associ
 
 Together, `Observer<T>` and `View<T>` form a bidirectional link between the game state and the game view.
 
-These can be used to synchronize the view from the game state (push) or query the game state from the view (pull):
+These can be used to synchronize the view from the game state (push) or query the game state from the view (pull).
+
+The "push" approach should be preferred because it often leads to less iterations per update cycle.
 
 ```rust
-use moonshine_kind::prelude::*;
-
-fn push_bird_state(query: Query<(&Bird, &Observer<Bird>), Changed<Position>>) {
+# use bevy::prelude::*;
+# use moonshine_view::prelude::*;
+# #[derive(Component)] struct Bird;
+# #[derive(Component)] struct Position;
+# impl Observe for Bird { fn observe(_: &World, _: Object<Self>, _: &mut ViewBuilder<Self>) {} }
+fn observe_bird_moved(query: Query<(&Bird, &Observer<Bird>), Changed<Position>>) {
     for (bird, observer) in query.iter() {
-        let view: Instance<View<T>> = observer.view();
+        let view = observer.view();
         // TODO: Update the view
     }
 }
+# bevy_ecs::system::assert_is_system(observe_bird_moved);
+```
 
-fn pull_bird_state(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Position>>) {
+Alternatively, you may also "pull" the game state into the view by querying the view target:
+
+```rust
+# use bevy::prelude::*;
+# use moonshine_view::prelude::*;
+# #[derive(Component)] struct Bird;
+# #[derive(Component)] struct Position;
+# impl Observe for Bird { fn observe(_: &World, _: Object<Self>, _: &mut ViewBuilder<Self>) {} }
+fn view_bird(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Position>>) {
     for view in views.iter() {
         if let Ok(bird) = query.get(view.target().entity()) {
             // TODO: Update the view from bird
         }
     }
 }
+# bevy_ecs::system::assert_is_system(view_bird);
 ```
 
 ### View Builder
@@ -92,15 +119,29 @@ When `Observe::observe` is invoked by the view system, an entity with a `View<T>
 2. Spawn children attached to the root view entity.
 
 ```rust
+# use bevy::prelude::*;
+# use moonshine_view::prelude::*;
+# #[derive(Component)] struct Bird;
+
+#[derive(Bundle)]
+struct BirdViewBundle {
+    // ...
+}
+
+#[derive(Bundle)]
+struct BirdWingsViewBundle {
+    // ...
+}
+
 impl Observe for Bird {
     fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
         // You have immutable access to the world and the observable entity's hierarchy.
         // Build the view as needed!
 
         let asset_server = world.resource::<AssetServer>();
-        view.insert(...);
+        view.insert(BirdViewBundle { /* ... */ });
         view.spawn(|root| {
-            root.spawn(...);
+            root.spawn(BirdWingsViewBundle { /* ... */ });
             // ...
         });
     }
@@ -118,6 +159,8 @@ Because the view system uses kinds to ensure full type safety between views and 
 Instead, you may query all views associated with an entity by using the `Observables` resource:
 
 ```rust
+# use bevy::prelude::*;
+# use moonshine_view::prelude::*;
 fn update_views_generic(observables: Res<Observables>) {
     for observable_entity in observables.iter() {
         for view_entity in observables.views(observable_entity) {
@@ -125,6 +168,7 @@ fn update_views_generic(observables: Res<Observables>) {
         }
     }
 }
+# bevy_ecs::system::assert_is_system(update_views_generic);
 ```
 
 ## Examples
