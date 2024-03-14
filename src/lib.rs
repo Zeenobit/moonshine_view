@@ -13,6 +13,8 @@ pub mod prelude {
         Observables, Observe, Observer, RebuildView, RegisterObservable, View, ViewBuilder,
         ViewPlugin,
     };
+
+    pub use moonshine_object::Object;
 }
 
 /// A [`Plugin`] needed for the view systems to work.
@@ -50,13 +52,11 @@ pub struct ViewBuilder<'a, T: Kind>(InstanceCommands<'a, View<T>>);
 
 impl<'a, T: Kind> ViewBuilder<'a, T> {
     /// Returns the view [`Instance`].
-    #[must_use]
     pub fn instance(&self) -> Instance<View<T>> {
         self.0.instance()
     }
 
     /// Returns the view [`Entity`].
-    #[must_use]
     pub fn entity(&self) -> Entity {
         self.0.entity()
     }
@@ -86,8 +86,7 @@ impl<T: Kind> Observer<T> {
     }
 }
 
-impl<T: Kind> Observer<T> {
-    #[must_use]
+impl<T: Observe> Observer<T> {
     pub fn view(&self) -> Instance<View<T>> {
         self.view
     }
@@ -100,19 +99,18 @@ pub struct View<T: Kind> {
 }
 
 impl<T: Observe> View<T> {
-    #[must_use]
     pub fn target(&self) -> Instance<T> {
         self.target
     }
 }
 
 #[derive(Bundle)]
-struct ViewBundle<T: Observe> {
+struct ViewBundle<T: Kind> {
     view: View<T>,
     unload: Unload,
 }
 
-impl<T: Observe> ViewBundle<T> {
+impl<T: Kind> ViewBundle<T> {
     pub fn new(observable: impl Into<Instance<T>>) -> Self {
         Self {
             view: View {
@@ -201,6 +199,32 @@ fn despawn<T: Observe>(
 /// An extension trait for used to rebuild a [`View`] for an [`Observer`] instance.
 pub trait RebuildView<T: Observe> {
     /// Despawns the current [`View`] associated with this [`Observer`] and rebuilds a new one.
+    ///
+    /// # Example
+    /// ```
+    /// # use bevy::prelude::*;
+    /// # use moonshine_view::prelude::*;
+    /// # use moonshine_kind::prelude::*; // For `intsance_ref` method
+    ///
+    /// #[derive(Component)]
+    /// enum Shape {
+    ///     Square,
+    ///     Circle,
+    /// }
+    ///
+    /// impl Observe for Shape {
+    ///     fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+    ///         let shape = world.get::<Shape>(object.entity());
+    ///         // ...
+    ///     }
+    /// }
+    ///
+    /// fn rebuild_shape_views(query: Query<InstanceRef<Observer<Shape>>>, mut commands: Commands) {
+    ///     for observer in query.iter() {
+    ///         commands.instance_ref(&observer).rebuild_view();
+    ///     }
+    /// }
+    /// ```
     fn rebuild_view(self);
 }
 

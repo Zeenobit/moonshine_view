@@ -207,7 +207,7 @@ fn randomize_positions(mut positions: Query<&mut Position>) {
     }
 }
 
-fn observe_position_changed<T: Component>(
+fn observe_position_changed<T: Observe>(
     shapes: Query<(&Observer<T>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
