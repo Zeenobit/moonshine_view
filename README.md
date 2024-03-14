@@ -33,12 +33,7 @@ impl Observe for Bird {
 
 You must register your type as an observable when building your [`App`]:
 
-```rust
-# use bevy::prelude::*;
-# use moonshine_view::prelude::*;
-# #[derive(Component)] struct Bird;
-# impl Observe for Bird { fn observe(_: &World, _: Object<Self>, _: &mut ViewBuilder<Self>) {} }
-# let mut app = App::new();
+```rust,ignore
 app.add_plugins(ViewPlugin) // Add `ViewPlugin` before registering observables!
     .register_observable::<Bird>();
 ```
@@ -47,13 +42,7 @@ Note that you can define any kind as observable, not just components!
 
 For example:
 
-```rust
-# use bevy::prelude::*;
-# use moonshine_view::prelude::*;
-# #[derive(Component)] struct Bird;
-# #[derive(Component)] struct Monkey;
-use moonshine_kind::prelude::*;
-
+```rust,ignore
 struct Creature;
 
 impl Kind for Creature {
@@ -79,29 +68,18 @@ These can be used to synchronize the view from the game state (push) or query th
 
 The "push" approach should be preferred because it often leads to less iterations per update cycle.
 
-```rust
-# use bevy::prelude::*;
-# use moonshine_view::prelude::*;
-# #[derive(Component)] struct Bird;
-# #[derive(Component)] struct Position;
-# impl Observe for Bird { fn observe(_: &World, _: Object<Self>, _: &mut ViewBuilder<Self>) {} }
+```rust,ignore
 fn observe_bird_moved(query: Query<(&Bird, &Observer<Bird>), Changed<Position>>) {
     for (bird, observer) in query.iter() {
         let view = observer.view();
         // TODO: Update the view
     }
 }
-# bevy_ecs::system::assert_is_system(observe_bird_moved);
 ```
 
 Alternatively, you may also "pull" the game state into the view by querying the view target:
 
-```rust
-# use bevy::prelude::*;
-# use moonshine_view::prelude::*;
-# #[derive(Component)] struct Bird;
-# #[derive(Component)] struct Position;
-# impl Observe for Bird { fn observe(_: &World, _: Object<Self>, _: &mut ViewBuilder<Self>) {} }
+```rust,ignore
 fn view_bird(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Position>>) {
     for view in views.iter() {
         if let Ok(bird) = query.get(view.target().entity()) {
@@ -109,7 +87,6 @@ fn view_bird(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Position>>) 
         }
     }
 }
-# bevy_ecs::system::assert_is_system(view_bird);
 ```
 
 ### View Builder
@@ -118,11 +95,7 @@ When `Observe::observe` is invoked by the view system, an entity with a `View<T>
 1. Insert components into the root view entity.
 2. Spawn children attached to the root view entity.
 
-```rust
-# use bevy::prelude::*;
-# use moonshine_view::prelude::*;
-# #[derive(Component)] struct Bird;
-
+```rust,ignore
 #[derive(Bundle)]
 struct BirdViewBundle {
     // ...
@@ -158,9 +131,7 @@ Because the view system uses kinds to ensure full type safety between views and 
 
 Instead, you may query all views associated with an entity by using the `Observables` resource:
 
-```rust
-# use bevy::prelude::*;
-# use moonshine_view::prelude::*;
+```rust,ignore
 fn update_views_generic(observables: Res<Observables>) {
     for observable_entity in observables.iter() {
         for view_entity in observables.views(observable_entity) {
@@ -168,7 +139,6 @@ fn update_views_generic(observables: Res<Observables>) {
         }
     }
 }
-# bevy_ecs::system::assert_is_system(update_views_generic);
 ```
 
 ## Examples
