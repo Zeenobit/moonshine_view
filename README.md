@@ -34,8 +34,7 @@ impl Observe for Bird {
 You must register your type as an observable when building your [`App`]:
 
 ```rust,ignore
-app.add_plugins(ViewPlugin) // Add `ViewPlugin` before registering observables!
-    .register_observable::<Bird>();
+app.register_observable::<Bird>();
 ```
 
 Note that you can define any kind as observable, not just components!

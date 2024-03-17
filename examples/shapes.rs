@@ -14,7 +14,6 @@ fn main() {
             ShapePlugin::default(),
             SavePlugin,
             LoadPlugin,
-            ViewPlugin, // <-- Needed for view system to work
         ))
         // Register Shape components for Save/Load:
         .register_type::<Square>()

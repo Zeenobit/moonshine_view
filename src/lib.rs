@@ -11,21 +11,9 @@ use moonshine_save::prelude::*;
 pub mod prelude {
     pub use super::{
         Observables, Observe, Observer, RebuildView, RegisterObservable, View, ViewBuilder,
-        ViewPlugin,
     };
 
     pub use moonshine_object::Object;
-}
-
-/// A [`Plugin`] needed for the view systems to work.
-///
-/// This plugin should be added before any calls to [`RegisterObservable::register_observable`].
-pub struct ViewPlugin;
-
-impl Plugin for ViewPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(Observables::default());
-    }
 }
 
 /// An extension trait used to register an observable type with an [`App`].
@@ -36,6 +24,7 @@ pub trait RegisterObservable {
 
 impl RegisterObservable for &mut App {
     fn register_observable<T: Observe>(self) -> Self {
+        self.world.init_resource::<Observables>();
         self.add_systems(PreUpdate, observe::<T>.after(LoadSystem::Load))
             .add_systems(Last, despawn::<T>)
     }
