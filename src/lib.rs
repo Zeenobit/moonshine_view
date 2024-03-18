@@ -104,7 +104,7 @@ struct ViewBundle<T: Kind> {
 impl<T: Kind> ViewBundle<T> {
     pub fn new(observable: impl Into<Instance<T>>) -> Self {
         let target = observable.into();
-        let name = format!("{:?}.View", target);
+        let name = format!("View.{:?}", target);
         Self {
             view: View { target },
             name: name.into(),
