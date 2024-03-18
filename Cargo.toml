@@ -14,6 +14,7 @@ bevy_app = "0.13.*"
 bevy_ecs = "0.13.*"
 bevy_hierarchy = "0.13.*"
 bevy_utils = "0.13.*"
+bevy_core = "0.13.*"
 moonshine-kind = { version = "0.1.*", path = "../kind" }
 moonshine-save = { version = "0.3.*", path = "../save" }
 moonshine-object = { version = "0.1.*", path = "../object" }

@@ -1,5 +1,6 @@
 #[doc = include_str!("../README.md")]
 use bevy_app::prelude::*;
+use bevy_core::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_hierarchy::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
@@ -96,15 +97,17 @@ impl<T: Observe> View<T> {
 #[derive(Bundle)]
 struct ViewBundle<T: Kind> {
     view: View<T>,
+    name: Name,
     unload: Unload,
 }
 
 impl<T: Kind> ViewBundle<T> {
     pub fn new(observable: impl Into<Instance<T>>) -> Self {
+        let target = observable.into();
+        let name = format!("{:?}.View", target);
         Self {
-            view: View {
-                target: observable.into(),
-            },
+            view: View { target },
+            name: name.into(),
             unload: Unload,
         }
     }
