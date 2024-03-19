@@ -58,9 +58,15 @@ impl<'a, T: Kind> ViewBuilder<'a, T> {
     }
 
     /// Adds some children to the [`View`] entity.
-    pub fn spawn<F: FnOnce(&mut ChildBuilder)>(&mut self, f: F) -> &mut Self {
+    pub fn insert_children<F: FnOnce(&mut ChildBuilder)>(&mut self, f: F) -> &mut Self {
         self.0.with_children(|view| f(view));
         self
+    }
+
+    /// Adds some children to the [`View`] entity.
+    #[deprecated(note = "use `insert_children` instead")]
+    pub fn spawn<F: FnOnce(&mut ChildBuilder)>(&mut self, f: F) -> &mut Self {
+        self.insert_children(f)
     }
 }
 
