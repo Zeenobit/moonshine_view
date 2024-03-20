@@ -112,7 +112,7 @@ impl Observe for Bird {
 
         let asset_server = world.resource::<AssetServer>();
         view.insert(BirdViewBundle { /* ... */ });
-        view.spawn(|root| {
+        view.insert_children(|root| {
             root.spawn(BirdWingsViewBundle { /* ... */ });
             // ...
         });
