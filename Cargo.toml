@@ -1,6 +1,6 @@
 [package]
 name = "moonshine-view"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "A solution to separate saved game state from game view for Bevy and Moonshine Save framework."
@@ -15,7 +15,7 @@ bevy_ecs = "0.13.*"
 bevy_hierarchy = "0.13.*"
 bevy_utils = "0.13.*"
 bevy_core = "0.13.*"
-moonshine-kind = { version = "0.1.*", path = "../kind" }
+moonshine-kind = { version = "0.1.4", path = "../kind" }
 moonshine-save = { version = "0.3.*", path = "../save" }
 moonshine-object = { version = "0.1.*", path = "../object" }
 

@@ -10,9 +10,7 @@ use moonshine_object::prelude::*;
 use moonshine_save::prelude::*;
 
 pub mod prelude {
-    pub use super::{
-        Observables, Observe, Observer, RebuildView, RegisterObservable, View, ViewBuilder,
-    };
+    pub use super::{Observables, Observe, Observer, RegisterObservable, View, ViewBuilder};
 
     pub use moonshine_object::Object;
 }
@@ -194,46 +192,39 @@ fn despawn<T: Observe>(
     }
 }
 
-/// An extension trait for used to rebuild a [`View`] for an [`Observer`] instance.
-pub trait RebuildView<T: Observe> {
-    /// Despawns the current [`View`] associated with this [`Observer`] and rebuilds a new one.
-    ///
-    /// # Example
-    /// ```
-    /// # use bevy::prelude::*;
-    /// # use moonshine_view::prelude::*;
-    /// # use moonshine_kind::prelude::*; // For `intsance_ref` method
-    ///
-    /// #[derive(Component)]
-    /// enum Shape {
-    ///     Square,
-    ///     Circle,
-    /// }
-    ///
-    /// impl Observe for Shape {
-    ///     fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
-    ///         let shape = world.get::<Shape>(object.entity());
-    ///         // ...
-    ///     }
-    /// }
-    ///
-    /// fn rebuild_shape_views(query: Query<InstanceRef<Observer<Shape>>>, mut commands: Commands) {
-    ///     for observer in query.iter() {
-    ///         commands.instance_ref(&observer).rebuild_view();
-    ///     }
-    /// }
-    /// ```
-    fn rebuild_view(self);
-}
-
-impl<T: Observe> RebuildView<T> for InstanceRefCommands<'_, Observer<T>> {
-    fn rebuild_view(mut self) {
-        let observer = self.entity();
-        let view = self.get().view();
-        self.commands().entity(view.entity()).despawn_recursive();
-        self.commands().add(move |world: &mut World| {
-            world.resource_mut::<Observables>().remove(observer, view);
-        });
-        self.remove::<Observer<T>>();
-    }
+/// Despawns the current [`View`] associated with this [`Observer`] and rebuilds a new one.
+///
+/// # Example
+/// ```
+/// # use bevy::prelude::*;
+/// # use moonshine_view::prelude::*;
+/// # use moonshine_kind::prelude::*; // For `intsance_ref` method
+///
+/// #[derive(Component)]
+/// enum Shape {
+///     Square,
+///     Circle,
+/// }
+///
+/// impl Observe for Shape {
+///     fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+///         let shape = world.get::<Shape>(object.entity());
+///         // ...
+///     }
+/// }
+///
+/// fn rebuild_shape_views(query: Query<InstanceRef<Observer<Shape>>>, mut commands: Commands) {
+///     for observer in query.iter() {
+///         moonshine_view::rebuild(observer, &mut commands);
+///     }
+/// }
+/// ```
+pub fn rebuild<T: Observe>(observer: InstanceRef<Observer<T>>, commands: &mut Commands) {
+    let entity = observer.entity();
+    let view = observer.view();
+    commands.entity(view.entity()).despawn_recursive();
+    commands.add(move |world: &mut World| {
+        world.resource_mut::<Observables>().remove(entity, view);
+    });
+    commands.entity(entity).remove::<Observer<T>>();
 }
