@@ -20,8 +20,8 @@ fn main() {
         .register_type::<Circle>()
         .register_type::<Position>()
         // Register Shapes as observale kinds:
-        .register_observer::<Shape, Square>()
-        .register_observer::<Shape, Circle>()
+        .register_view::<Shape, Square>()
+        .register_view::<Shape, Circle>()
         // Add Save/Load Pipelines:
         .add_systems(
             PreUpdate,
@@ -76,8 +76,8 @@ impl CircleBundle {
 #[reflect(Component)]
 struct Square;
 
-impl Observe<Shape> for Square {
-    fn observe(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
+impl BuildView<Shape> for Square {
+    fn build(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
         info!("{object:?} is observed!");
         let transform = world.get::<Position>(object.entity()).unwrap().into();
         view.insert(ShapeBundle::rect(
@@ -95,8 +95,8 @@ impl Observe<Shape> for Square {
 #[reflect(Component)]
 struct Circle;
 
-impl Observe<Shape> for Circle {
-    fn observe(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
+impl BuildView<Shape> for Circle {
+    fn build(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
         info!("{object:?} is observed!");
         let transform = world.get::<Position>(object.entity()).unwrap().into();
         view.insert(ShapeBundle::circle(
@@ -201,7 +201,7 @@ fn randomize_positions(mut positions: Query<&mut Position>) {
 }
 
 fn observe_shape_position_changed(
-    shapes: Query<(&Observer<Shape>, &Position), Changed<Position>>,
+    shapes: Query<(&Model<Shape>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
     for (observer, position) in shapes.iter() {

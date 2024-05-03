@@ -9,95 +9,118 @@ use moonshine_object::prelude::*;
 use moonshine_save::prelude::*;
 
 pub mod prelude {
-    pub use super::{Observables, Observe, Observer, RegisterObservable, View, ViewBuilder};
+    pub use super::{BuildView, Model, RegisterView, View, ViewBuilder, Viewables};
 
     pub use moonshine_object::Object;
+
+    #[deprecated(note = "use `RegisterViewer` instead")]
+    pub use super::RegisterView as RegisterObservable;
+
+    #[deprecated(note = "use `BuildView` instead")]
+    pub use super::BuildView as Observe;
+
+    #[deprecated(note = "use `Model` instead")]
+    pub use super::Model as Observer;
+
+    #[deprecated(note = "use `Viewables` instead")]
+    pub use super::Viewables as Observables;
 }
 
-/// An extension trait used to register an observable type with an [`App`].
-pub trait RegisterObservable: Sized {
-    /// Registers the given type as an observable.
-    fn register_observable<T: Observe>(self) -> Self {
-        self.register_observer::<T, T>()
+/// Extension trait used to register views using an [`App`].
+pub trait RegisterView: Sized {
+    /// Registers a view for a given [`Kind`].
+    fn register_view<T: Kind, V: BuildView<T>>(self) -> Self;
+
+    /// Registers a given [`Kind`] as viewable.
+    fn register_viewable<T: BuildView>(self) -> Self {
+        self.register_view::<T, T>()
     }
 
-    fn register_observer<T: Kind, S: Observe<T>>(self) -> Self;
+    #[deprecated(note = "use `register_viewable` instead")]
+    fn register_observable<T: BuildView>(self) -> Self {
+        self.register_viewable::<T>()
+    }
 }
 
-impl RegisterObservable for &mut App {
-    fn register_observer<T: Kind, S: Observe<T>>(self) -> Self {
-        self.world.init_resource::<Observables>();
-        self.add_systems(PreUpdate, observe::<T, S>.after(LoadSystem::Load))
+impl RegisterView for &mut App {
+    fn register_view<T: Kind, V: BuildView<T>>(self) -> Self {
+        self.init_resource::<Viewables>()
+            .add_systems(PreUpdate, spawn::<T, V>.after(LoadSystem::Load))
             .add_systems(Last, despawn::<T>)
     }
 }
 
-/// Any [`Kind`] which should be associated with a [`View`].
-pub trait Observe<T: Kind = Self>: Component {
-    /// This function is invoked whenever a new instance of this [`Kind`] is spawned without a [`View`].
-    fn observe(_world: &World, _object: Object<T>, view: &mut ViewBuilder<T>);
+/// Trait used to spawn a [`View`] [`Entity`] for an [`Instance`] of [`Kind`] `T`.
+pub trait BuildView<T: Kind = Self>: Kind {
+    /// Called when a new [`Instance`] of [`Kind`] `T` is spawned without a [`View`].
+    ///
+    /// Remember to register this type using [`RegisterView`] for this to happen.
+    fn build(_world: &World, _object: Object<T>, view: &mut ViewBuilder<T>);
 }
 
-/// A handle to a [`View`] at the time of its creation.
+/// Used to build a [`View`] [`Entity`] for a given [`Instance`] of [`Kind`] `T`.
+///
+/// See [`BuildView`] for more information.
 pub struct ViewBuilder<'a, T: Kind>(InstanceCommands<'a, View<T>>);
 
 impl<'a, T: Kind> ViewBuilder<'a, T> {
-    /// Returns the view [`Instance`].
+    /// Returns the [`View`] [`Instance`].
     pub fn instance(&self) -> Instance<View<T>> {
         self.0.instance()
     }
 
-    /// Returns the view [`Entity`].
+    /// Returns the [`View`] [`Entity`].
     pub fn entity(&self) -> Entity {
         self.0.entity()
     }
 
-    /// Inserts a new [`Bundle`] into the [`View`] entity.
+    /// Inserts a new [`Bundle`] into the [`View`] [`Entity`].
     pub fn insert(&mut self, bundle: impl Bundle) -> &mut Self {
         self.0.insert(bundle);
         self
     }
 
-    /// Adds some children to the [`View`] entity.
+    /// Adds some children to the [`View`] [`Entity`].
     pub fn insert_children<F: FnOnce(&mut ChildBuilder)>(&mut self, f: F) -> &mut Self {
         self.0.with_children(|view| f(view));
         self
     }
-
-    /// Adds some children to the [`View`] entity.
-    #[deprecated(note = "use `insert_children` instead")]
-    pub fn spawn<F: FnOnce(&mut ChildBuilder)>(&mut self, f: F) -> &mut Self {
-        self.insert_children(f)
-    }
 }
 
-/// A [`Component`] which associates its [`Entity`] with a [`View`] of given [`Kind`].
+/// [`Component`] of an [`Entity`] associated with a [`View`].
 #[derive(Component)]
-pub struct Observer<T: Kind> {
+pub struct Model<T: Kind> {
     view: Instance<View<T>>,
 }
 
-impl<T: Kind> Observer<T> {
+impl<T: Kind> Model<T> {
     fn new(view: Instance<View<T>>) -> Self {
         Self { view }
     }
 }
 
-impl<T: Kind> Observer<T> {
+impl<T: Kind> Model<T> {
+    /// Returns the [`View`] [`Instance`] associated with this [`Model`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
     }
 }
 
-/// A [`Component`] which associates its [`Entity`] with an observed instance of given [`Kind`].
+/// [`Component`] of an [`Entity`] associated with a [`Model`].
 #[derive(Component)]
 pub struct View<T: Kind> {
-    target: Instance<T>,
+    model: Instance<T>,
 }
 
 impl<T: Kind> View<T> {
+    /// Returns the [`Model`] [`Instance`] associated with this [`View`].
+    pub fn model(&self) -> Instance<T> {
+        self.model
+    }
+
+    #[deprecated(note = "use `model` instead")]
     pub fn target(&self) -> Instance<T> {
-        self.target
+        self.model()
     }
 }
 
@@ -108,10 +131,10 @@ struct ViewBundle<T: Kind> {
 }
 
 impl<T: Kind> ViewBundle<T> {
-    pub fn new(observable: impl Into<Instance<T>>) -> Self {
-        let target = observable.into();
+    pub fn new(model: impl Into<Instance<T>>) -> Self {
+        let model = model.into();
         Self {
-            view: View { target },
+            view: View { model },
             unload: Unload,
         }
     }
@@ -121,27 +144,27 @@ impl<T: Kind> KindBundle for ViewBundle<T> {
     type Kind = View<T>;
 }
 
-/// A [`Resource`] which contains a mapping of all observable entities to their observed views.
+/// A [`Resource`] which contains a mapping of all viewable entities to their views.
 ///
 /// # Usage
 ///
-/// Typically, you want to access views or observables using [`Observer`] and [`View`] components.
-/// However, in some cases it may be needed to access **all** views for a given observables.
+/// Typically, you want to access models or views using [`Model`] and [`View`] components.
+/// However, in some cases it may be needed to access **all** views for a given model.
 /// This [`Resource`] provides an interface for this specific purpose.
 #[derive(Resource, Default)]
-pub struct Observables(HashMap<Entity, HashSet<Entity>>);
+pub struct Viewables(HashMap<Entity, HashSet<Entity>>);
 
-impl Observables {
+impl Viewables {
     pub fn contains(&self, entity: Entity) -> bool {
         self.0.contains_key(&entity)
     }
 
-    /// Iterates over all observable entities with at least one observed view.
+    /// Iterates over all viewed [`Model`] entities.
     pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
         self.0.keys().copied()
     }
 
-    /// Iterates over all observed views for a given entity.
+    /// Iterates over all views for a given [`Model`] [`Entity`].
     pub fn views(&self, entity: Entity) -> impl Iterator<Item = Entity> + '_ {
         self.0
             .get(&entity)
@@ -162,41 +185,41 @@ impl Observables {
     }
 }
 
-fn observe<T: Kind, S: Observe<T>>(
-    objects: Objects<T, (Without<Observer<T>>, With<S>)>,
+fn spawn<T: Kind, S: BuildView<T>>(
+    objects: Objects<T, (Without<Model<T>>, S::Filter)>,
     world: &World,
     mut commands: Commands,
 ) {
-    for observable in objects.iter() {
-        let view = commands.spawn_instance(ViewBundle::new(observable));
+    for object in objects.iter() {
+        let view = commands.spawn_instance(ViewBundle::new(object));
         let mut view = ViewBuilder(view);
-        S::observe(world, observable, &mut view);
+        S::build(world, object, &mut view);
         let view = view.instance();
-        let entity = observable.entity();
+        let entity = object.entity();
         commands.add(move |world: &mut World| {
-            world.resource_mut::<Observables>().add(entity, view);
+            world.resource_mut::<Viewables>().add(entity, view);
         });
-        commands.entity(entity).insert(Observer::new(view));
+        commands.entity(entity).insert(Model::new(view));
         debug!("{view:?} spawned for {entity:?}");
     }
 }
 
 fn despawn<T: Kind>(
     views: Query<InstanceRef<View<T>>>,
-    mut observables: ResMut<Observables>,
+    mut viewables: ResMut<Viewables>,
     query: Query<(), T::Filter>,
     mut commands: Commands,
 ) {
-    for (view, observable) in views.iter().map(|view| (view.instance(), view.target())) {
-        if query.get(observable.entity()).is_err() {
+    for (view, model) in views.iter().map(|view| (view.instance(), view.model())) {
+        if query.get(model.entity()).is_err() {
             commands.entity(view.entity()).despawn_recursive();
-            observables.remove(observable.entity(), view);
-            debug!("{view:?} despawned for {observable:?}");
+            viewables.remove(model.entity(), view);
+            debug!("{view:?} despawned for {model:?}");
         }
     }
 }
 
-/// Despawns the current [`View`] associated with this [`Observer`] and rebuilds a new one.
+/// Despawns the current [`View`] associated with this [`Model`] and rebuilds a new one.
 ///
 /// # Example
 /// ```
@@ -210,25 +233,25 @@ fn despawn<T: Kind>(
 ///     Circle,
 /// }
 ///
-/// impl Observe for Shape {
-///     fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+/// impl BuildView for Shape {
+///     fn build(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
 ///         let shape = world.get::<Shape>(object.entity());
 ///         // ...
 ///     }
 /// }
 ///
-/// fn rebuild_shape_views(query: Query<InstanceRef<Observer<Shape>>>, mut commands: Commands) {
-///     for observer in query.iter() {
-///         moonshine_view::rebuild(observer, &mut commands);
+/// fn rebuild_shape_views(query: Query<InstanceRef<Model<Shape>>>, mut commands: Commands) {
+///     for model in query.iter() {
+///         moonshine_view::rebuild(model, &mut commands);
 ///     }
 /// }
 /// ```
-pub fn rebuild<T: Kind>(observer: InstanceRef<Observer<T>>, commands: &mut Commands) {
-    let entity = observer.entity();
-    let view = observer.view();
+pub fn rebuild<T: Kind>(model: InstanceRef<Model<T>>, commands: &mut Commands) {
+    let entity = model.entity();
+    let view = model.view();
     commands.entity(view.entity()).despawn_recursive();
     commands.add(move |world: &mut World| {
-        world.resource_mut::<Observables>().remove(entity, view);
+        world.resource_mut::<Viewables>().remove(entity, view);
     });
-    commands.entity(entity).remove::<Observer<T>>();
+    commands.entity(entity).remove::<Model<T>>();
 }

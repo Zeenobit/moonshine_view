@@ -12,9 +12,11 @@ This crate aims to reduce some of this complexity by providing a more generic an
 
 ## Usage
 
-### Observables
+### Viewables
 
-By definition, an observable is any [`Kind`](https://docs.rs/moonshine-kind/latest/moonshine_kind/trait.Kind.html) which implements the `Observe` trait. Typically, this is any entity which has an observable representation in your game.
+By definition, a [`Component`] is **Viewable** if a view can be built for it using [`BuildView`].
+
+An [`Entity`] is **Viewable** if it has at least one viewable component.
 
 ```rust
 use bevy::prelude::*;
@@ -23,66 +25,141 @@ use moonshine_view::prelude::*;
 #[derive(Component)]
 struct Bird;
 
-impl Observe for Bird {
-    fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+impl BuildView for Bird {
+    fn build(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
         let asset_server = world.resource::<AssetServer>();
         // ...
+        for child in object.children() {
+            // ...
+        }
     }
 }
+
+// Remember to register viewable types:
+let mut app = App::new();
+app.register_viewable::<Bird>();
 ```
 
-You must register your type as an observable when building your [`App`]:
+You may also define a [`Kind`] as viewable:
 
-```rust,ignore
-app.register_observable::<Bird>();
-```
+```rust
+use bevy::prelude::*;
+use moonshine_view::prelude::*;
+use moonshine_kind::prelude::*;
 
-Note that you can define any kind as observable, not just components!
+#[derive(Component)]
+struct Bird;
 
-For example:
+#[derive(Component)]
+struct Monkey;
 
-```rust,ignore
 struct Creature;
 
 impl Kind for Creature {
-    type Filter = Or<(With<Monkey>, With<Bird>)>;
+    type Filter = Or<(With<Bird>, With<Monkey>)>;
 }
 
-impl Observe for Creature {
-    fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
-        // ...
+impl BuildView for Creature {
+    fn build(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+        // All creatures look the same!
     }
 }
+
+// Remember to register viewable types:
+let mut app = App::new();
+app.register_viewable::<Creature>();
 ```
 
-### Observers and Views
+This is useful when you want to define the same view for multiple kinds of entities.
 
-Whenever an observable instance of kind `T` is found without an `Observer<T>` component, a new view is spawned and observable is invoked by calling `Observe::observe`.
+You may even define views polymorphically.
 
-This happens automatically. Any entity with an `Observer<T>` component is associated with a `View<T>`, which can be accessed via the `Observer<T>::view` method. Conversely, any entity with a `View<T>` component is associated with an `Observer<T>`, which can be accessed via the `View<T>::target` method.
+```rust
+use bevy::prelude::*;
+use moonshine_view::prelude::*;
+use moonshine_kind::prelude::*;
 
-Together, `Observer<T>` and `View<T>` form a bidirectional link between the game state and the game view.
+#[derive(Component)]
+struct Bird;
 
-These can be used to synchronize the view from the game state (push) or query the game state from the view (pull).
+#[derive(Component)]
+struct Monkey;
+
+struct Creature;
+
+impl Kind for Creature {
+    type Filter = Or<(With<Bird>, With<Monkey>)>;
+}
+
+impl BuildView<Creature> for Bird {
+    fn build(world: &World, object: Object<Creature>, view: &mut ViewBuilder<Creature>) {
+        // Birds look different, but they're still creatures!
+    }
+}
+
+impl BuildView<Creature> for Monkey {
+    fn build(world: &World, object: Object<Creature>, view: &mut ViewBuilder<Creature>) {
+        // Monkeys look different, but they're still creatures!
+    }
+}
+
+// Polymorphic views are registered slightly differently:
+let mut app = App::new();
+app.register_view::<Creature, Bird>()
+    .register_view::<Creature, Monkey>();
+```
+
+This is useful when you want to build a different version of the same view for multiple kinds of entities.
+
+### Model ⇄ View
+
+When a viewable entity is spawned, a **View Entity** is spawned with it, and the viewable entity becomes a **Model Entity**.
+
+A view entity is an entity with at least one [`View<T>`] component. Similarly, a model entity is an entity with at least one [`Model<T>`] component.
+
+Each [`View<T>`] is associated with exactly one [`Model<T>`].
+
+When a [`Model<T>`] is despawned, or if it is no longer of [`Kind`] `T`, the associated [`View<T>`] is despawned with it.
+
+Assuming the view is registered (see [`RegisterView`]), all of this happens automatically. 😎
+
+Together, [`Model<T>`] and [`View<T>`] form a two-way link between the game state and the game view.
+
+### Synchronization
+
+At runtime, it is often required to update the view state based on the model state. For example, if an entity's position changes, so should the position of its view.
+
+To solve this, consider using a system which either updates the view based on latest model state ("push") or queries the model from the view ("pull").
 
 The "push" approach should be preferred because it often leads to less iterations per update cycle.
 
-```rust,ignore
-fn observe_bird_moved(query: Query<(&Bird, &Observer<Bird>), Changed<Position>>) {
-    for (bird, observer) in query.iter() {
-        let view = observer.view();
-        // TODO: Update the view
+```rust
+use bevy::prelude::*;
+use moonshine_view::prelude::*;
+
+#[derive(Component)]
+struct Bird;
+
+impl BuildView for Bird {
+    fn build(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+        // ...
     }
 }
-```
 
-Alternatively, you may also "pull" the game state into the view by querying the view target:
+// Update view from model, if needed (preferred)
+fn view_bird_moved(query: Query<(&Bird, &Model<Bird>), Changed<Bird>>) {
+    for (bird, model) in query.iter() {
+        let view = model.view();
+        // ...
+    }
+}
 
-```rust,ignore
-fn view_bird(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Position>>) {
+// Query model from view constantly (typically less efficient)
+fn view_bird(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Bird>>) {
     for view in views.iter() {
-        if let Ok(bird) = query.get(view.target().entity()) {
-            // TODO: Update the view from bird
+        let model = view.model();
+        if let Ok(bird) = query.get(model.entity()) {
+            // ...
         }
     }
 }
@@ -90,11 +167,21 @@ fn view_bird(views: Query<&View<Bird>>, query: Query<&Bird, Changed<Position>>) 
 
 ### View Builder
 
-When `Observe::observe` is invoked by the view system, an entity with a `View<T>` component is created and passed to the `ViewBuilder<T>`. You may use the `ViewBuilder<T>` to either:
-1. Insert components into the root view entity.
-2. Spawn children attached to the root view entity.
+The implementation of [`BuildView`] requires the use [`ViewBuilder`] to setup the view entity as needed.
 
-```rust,ignore
+The view builder may be used to:
+1. Insert components into the view entity, or
+2. Add new children to the view entity
+
+For example,
+
+```rust
+use bevy::prelude::*;
+use moonshine_view::prelude::*;
+
+#[derive(Component)]
+struct Bird;
+
 #[derive(Bundle)]
 struct BirdViewBundle {
     // ...
@@ -105,35 +192,40 @@ struct BirdWingsViewBundle {
     // ...
 }
 
-impl Observe for Bird {
-    fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
-        // You have immutable access to the world and the observable entity's hierarchy.
-        // Build the view as needed!
-
-        let asset_server = world.resource::<AssetServer>();
-        view.insert(BirdViewBundle { /* ... */ });
-        view.insert_children(|root| {
-            root.spawn(BirdWingsViewBundle { /* ... */ });
+impl BuildView for Bird {
+    fn build(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+        // Root
+        view.insert(BirdViewBundle {
             // ...
+        });
+
+        view.insert_children(|root| {
+            // Wings
+            root.spawn(BirdWingsViewBundle {
+                // ...
+            });
         });
     }
 }
 ```
 
-The root view entity is automatically marked with an [`Unload`](https://docs.rs/moonshine-save/latest/moonshine_save/load/struct.Unload.html) component. This means that the entire view entity hierarchy will be automatically despawned whenever a new game state is loaded.
+The root view entity is automatically marked with [`Unload`].
 
-The view entity hierarchy will also despawn automatically whenever its target observable is not longer valid (i.e. if despawned or no longer matching the correct kind).
+This means the entire view entity hierarchy is despawned whenever a new game state is loaded.
 
-### Generic Observables
+### Untyped Viewables
 
-Because the view system uses kinds to ensure full type safety between views and observables, there is no way to access all views of a given observable entity via a component.
+Because the view system uses [`Kind`] for type safety, there is no access to views of a given viewable entity via a component.
 
 Instead, you may query all views associated with an entity by using the `Observables` resource:
 
-```rust,ignore
-fn update_views_generic(observables: Res<Observables>) {
-    for observable_entity in observables.iter() {
-        for view_entity in observables.views(observable_entity) {
+```rust
+use bevy::prelude::*;
+use moonshine_view::prelude::*;
+
+fn update_views_generic(viewables: Res<Viewables>) {
+    for viewable_entity in viewables.iter() {
+        for view_entity in viewables.views(viewable_entity) {
             // ...
         }
     }
@@ -143,3 +235,13 @@ fn update_views_generic(observables: Res<Observables>) {
 ## Examples
 
 See [shapes.rs](examples/shapes.rs) for a complete usage example.
+
+[`Component`]:https://docs.rs/bevy/latest/bevy/ecs/component/trait.Component.html
+[`Entity`]:https://docs.rs/bevy/latest/bevy/ecs/entity/struct.Entity.html
+[`Kind`]:https://docs.rs/moonshine-kind/latest/moonshine_kind/trait.Kind.html
+[`Unload`]:https://docs.rs/moonshine-save/latest/moonshine_save/load/struct.Unload.html
+[`BuildView`]:https://docs.rs/moonshine-view/latest/moonshine_view/trait.Observe.html
+[`Model<T>`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.Model.html
+[`View<T>`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.View.html
+[`RegisterView`]:https://docs.rs/moonshine-view/latest/moonshine_view/trait.RegisterView.html
+[`ViewBuilder`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.ViewBuilder.html
