@@ -34,7 +34,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, (handle_mouse, handle_keyboard))
         // View Systems:
-        .add_systems(PostUpdate, observe_shape_position_changed)
+        .add_systems(PostUpdate, view_shape_position_changed)
         .run();
 }
 
@@ -200,12 +200,12 @@ fn randomize_positions(mut positions: Query<&mut Position>) {
     }
 }
 
-fn observe_shape_position_changed(
+fn view_shape_position_changed(
     shapes: Query<(&Model<Shape>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
-    for (observer, position) in shapes.iter() {
-        let view = observer.view();
+    for (model, position) in shapes.iter() {
+        let view = model.view();
         let mut transform = transform.get_mut(view.entity()).unwrap();
         *transform = position.into();
     }
