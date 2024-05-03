@@ -1,3 +1,5 @@
+use std::any::TypeId;
+
 #[doc = include_str!("../README.md")]
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
@@ -27,26 +29,30 @@ pub mod prelude {
 }
 
 /// Extension trait used to register views using an [`App`].
-pub trait RegisterView: Sized {
+pub trait RegisterView {
     /// Registers a view for a given [`Kind`].
-    fn register_view<T: Kind, V: BuildView<T>>(self) -> Self;
+    fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self;
 
     /// Registers a given [`Kind`] as viewable.
-    fn register_viewable<T: BuildView>(self) -> Self {
+    fn register_viewable<T: BuildView>(&mut self) -> &mut Self {
         self.register_view::<T, T>()
     }
 
     #[deprecated(note = "use `register_viewable` instead")]
-    fn register_observable<T: BuildView>(self) -> Self {
+    fn register_observable<T: BuildView>(&mut self) -> &mut Self {
         self.register_viewable::<T>()
     }
 }
 
 impl RegisterView for &mut App {
-    fn register_view<T: Kind, V: BuildView<T>>(self) -> Self {
-        self.init_resource::<Viewables>()
-            .add_systems(PreUpdate, spawn::<T, V>.after(LoadSystem::Load))
-            .add_systems(Last, despawn::<T>)
+    fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
+        self.add_systems(PreUpdate, spawn::<T, V>.after(LoadSystem::Load));
+        let mut viewables = self.world.get_resource_or_insert_with(Viewables::default);
+        if !viewables.is_viewable_kind::<T>() {
+            viewables.add_kind::<T>();
+            self.add_systems(Last, despawn::<T>);
+        }
+        self
     }
 }
 
@@ -152,36 +158,53 @@ impl<T: Kind> KindBundle for ViewBundle<T> {
 /// However, in some cases it may be needed to access **all** views for a given model.
 /// This [`Resource`] provides an interface for this specific purpose.
 #[derive(Resource, Default)]
-pub struct Viewables(HashMap<Entity, HashSet<Entity>>);
+pub struct Viewables {
+    models: HashMap<Entity, HashSet<Entity>>,
+    kinds: HashMap<TypeId, HashSet<Entity>>,
+}
 
 impl Viewables {
     pub fn contains(&self, entity: Entity) -> bool {
-        self.0.contains_key(&entity)
+        self.models.contains_key(&entity)
     }
 
     /// Iterates over all viewed [`Model`] entities.
     pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
-        self.0.keys().copied()
+        self.models.keys().copied()
+    }
+
+    pub fn is_viewable_kind<T: Kind>(&self) -> bool {
+        self.kinds.contains_key(&TypeId::of::<T>())
     }
 
     /// Iterates over all views for a given [`Model`] [`Entity`].
     pub fn views(&self, entity: Entity) -> impl Iterator<Item = Entity> + '_ {
-        self.0
+        self.models
             .get(&entity)
             .into_iter()
             .flat_map(|views| views.iter().copied())
     }
 
+    fn add_kind<T: Kind>(&mut self) {
+        self.kinds.insert(TypeId::of::<T>(), HashSet::default());
+    }
+
     fn add<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
-        self.0.entry(entity).or_default().insert(view.entity());
+        self.models.entry(entity).or_default().insert(view.entity());
+        self.kinds
+            .get_mut(&TypeId::of::<T>())
+            .expect("kind must be registered as viewable")
+            .insert(entity);
     }
 
     fn remove<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
-        let views = self.0.get_mut(&entity).unwrap();
+        let views = self.models.get_mut(&entity).unwrap();
         views.remove(&view.entity());
         if views.is_empty() {
-            self.0.remove(&entity);
+            self.models.remove(&entity);
         }
+        let kinds = self.kinds.get_mut(&TypeId::of::<T>()).unwrap();
+        kinds.remove(&view.entity());
     }
 }
 
