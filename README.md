@@ -147,7 +147,7 @@ impl BuildView for Bird {
 }
 
 // Update view from model, if needed (preferred)
-fn view_bird_moved(query: Query<(&Bird, &Model<Bird>), Changed<Bird>>) {
+fn view_bird_changed(query: Query<(&Bird, &Model<Bird>), Changed<Bird>>) {
     for (bird, model) in query.iter() {
         let view = model.view();
         // ...
