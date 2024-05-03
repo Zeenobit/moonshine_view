@@ -206,14 +206,22 @@ fn spawn<T: Kind, S: BuildView<T>>(
 
 fn despawn<T: Kind>(
     views: Query<InstanceRef<View<T>>>,
-    mut viewables: ResMut<Viewables>,
     query: Query<(), T::Filter>,
     mut commands: Commands,
 ) {
-    for (view, model) in views.iter().map(|view| (view.instance(), view.model())) {
+    for view in views.iter() {
+        let model = view.model();
+        let view = view.instance();
         if query.get(model.entity()).is_err() {
+            if let Some(mut entity) = commands.get_entity(model.entity()) {
+                entity.remove::<Model<T>>();
+            }
             commands.entity(view.entity()).despawn_recursive();
-            viewables.remove(model.entity(), view);
+            commands.add(move |world: &mut World| {
+                world
+                    .resource_mut::<Viewables>()
+                    .remove(model.entity(), view);
+            });
             debug!("{view:?} despawned for {model:?}");
         }
     }
