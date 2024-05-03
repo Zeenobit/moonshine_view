@@ -15,18 +15,21 @@ pub mod prelude {
 
     pub use moonshine_object::Object;
 
-    #[deprecated(note = "use `RegisterViewer` instead")]
-    pub use super::RegisterView as RegisterObservable;
-
-    #[deprecated(note = "use `BuildView` instead")]
-    pub use super::BuildView as Observe;
-
-    #[deprecated(note = "use `Model` instead")]
-    pub use super::Model as Observer;
-
-    #[deprecated(note = "use `Viewables` instead")]
-    pub use super::Viewables as Observables;
+    // TODO: Remove
+    pub use super::{Observables, Observe, Observer, RegisterObservable};
 }
+
+#[deprecated(note = "use `RegisterViewer` instead")]
+pub use RegisterView as RegisterObservable;
+
+#[deprecated(note = "use `BuildView` instead")]
+pub use BuildView as Observe;
+
+#[deprecated(note = "use `Model` instead")]
+pub use Model as Observer;
+
+#[deprecated(note = "use `Viewables` instead")]
+pub use Viewables as Observables;
 
 /// Extension trait used to register views using an [`App`].
 pub trait RegisterView {
