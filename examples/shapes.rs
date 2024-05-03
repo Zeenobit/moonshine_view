@@ -20,8 +20,8 @@ fn main() {
         .register_type::<Circle>()
         .register_type::<Position>()
         // Register Shapes as observale kinds:
-        .register_observable::<Square>()
-        .register_observable::<Circle>()
+        .register_observer::<Shape, Square>()
+        .register_observer::<Shape, Circle>()
         // Add Save/Load Pipelines:
         .add_systems(
             PreUpdate,
@@ -34,13 +34,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, (handle_mouse, handle_keyboard))
         // View Systems:
-        .add_systems(
-            PostUpdate,
-            (
-                observe_position_changed::<Square>,
-                observe_position_changed::<Circle>,
-            ),
-        )
+        .add_systems(PostUpdate, observe_shape_position_changed)
         .run();
 }
 
@@ -82,8 +76,8 @@ impl CircleBundle {
 #[reflect(Component)]
 struct Square;
 
-impl Observe for Square {
-    fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+impl Observe<Shape> for Square {
+    fn observe(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
         info!("{object:?} is observed!");
         let transform = world.get::<Position>(object.entity()).unwrap().into();
         view.insert(ShapeBundle::rect(
@@ -101,8 +95,8 @@ impl Observe for Square {
 #[reflect(Component)]
 struct Circle;
 
-impl Observe for Circle {
-    fn observe(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+impl Observe<Shape> for Circle {
+    fn observe(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
         info!("{object:?} is observed!");
         let transform = world.get::<Position>(object.entity()).unwrap().into();
         view.insert(ShapeBundle::circle(
@@ -206,8 +200,8 @@ fn randomize_positions(mut positions: Query<&mut Position>) {
     }
 }
 
-fn observe_position_changed<T: Observe>(
-    shapes: Query<(&Observer<T>, &Position), Changed<Position>>,
+fn observe_shape_position_changed(
+    shapes: Query<(&Observer<Shape>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
     for (observer, position) in shapes.iter() {

@@ -15,23 +15,27 @@ pub mod prelude {
 }
 
 /// An extension trait used to register an observable type with an [`App`].
-pub trait RegisterObservable {
+pub trait RegisterObservable: Sized {
     /// Registers the given type as an observable.
-    fn register_observable<T: Observe>(self) -> Self;
+    fn register_observable<T: Observe>(self) -> Self {
+        self.register_observer::<T, T>()
+    }
+
+    fn register_observer<T: Kind, S: Observe<T>>(self) -> Self;
 }
 
 impl RegisterObservable for &mut App {
-    fn register_observable<T: Observe>(self) -> Self {
+    fn register_observer<T: Kind, S: Observe<T>>(self) -> Self {
         self.world.init_resource::<Observables>();
-        self.add_systems(PreUpdate, observe::<T>.after(LoadSystem::Load))
+        self.add_systems(PreUpdate, observe::<T, S>.after(LoadSystem::Load))
             .add_systems(Last, despawn::<T>)
     }
 }
 
 /// Any [`Kind`] which should be associated with a [`View`].
-pub trait Observe: Kind {
+pub trait Observe<T: Kind = Self>: Component {
     /// This function is invoked whenever a new instance of this [`Kind`] is spawned without a [`View`].
-    fn observe(_world: &World, _object: Object<Self>, view: &mut ViewBuilder<Self>);
+    fn observe(_world: &World, _object: Object<T>, view: &mut ViewBuilder<T>);
 }
 
 /// A handle to a [`View`] at the time of its creation.
@@ -79,7 +83,7 @@ impl<T: Kind> Observer<T> {
     }
 }
 
-impl<T: Observe> Observer<T> {
+impl<T: Kind> Observer<T> {
     pub fn view(&self) -> Instance<View<T>> {
         self.view
     }
@@ -91,7 +95,7 @@ pub struct View<T: Kind> {
     target: Instance<T>,
 }
 
-impl<T: Observe> View<T> {
+impl<T: Kind> View<T> {
     pub fn target(&self) -> Instance<T> {
         self.target
     }
@@ -113,7 +117,7 @@ impl<T: Kind> ViewBundle<T> {
     }
 }
 
-impl<T: Observe> KindBundle for ViewBundle<T> {
+impl<T: Kind> KindBundle for ViewBundle<T> {
     type Kind = View<T>;
 }
 
@@ -128,6 +132,10 @@ impl<T: Observe> KindBundle for ViewBundle<T> {
 pub struct Observables(HashMap<Entity, HashSet<Entity>>);
 
 impl Observables {
+    pub fn contains(&self, entity: Entity) -> bool {
+        self.0.contains_key(&entity)
+    }
+
     /// Iterates over all observable entities with at least one observed view.
     pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
         self.0.keys().copied()
@@ -141,11 +149,11 @@ impl Observables {
             .flat_map(|views| views.iter().copied())
     }
 
-    fn add<T: Observe>(&mut self, entity: Entity, view: Instance<View<T>>) {
+    fn add<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
         self.0.entry(entity).or_default().insert(view.entity());
     }
 
-    fn remove<T: Observe>(&mut self, entity: Entity, view: Instance<View<T>>) {
+    fn remove<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
         let views = self.0.get_mut(&entity).unwrap();
         views.remove(&view.entity());
         if views.is_empty() {
@@ -154,15 +162,15 @@ impl Observables {
     }
 }
 
-fn observe<T: Observe>(
-    objects: Objects<T, Without<Observer<T>>>,
+fn observe<T: Kind, S: Observe<T>>(
+    objects: Objects<T, (Without<Observer<T>>, With<S>)>,
     world: &World,
     mut commands: Commands,
 ) {
     for observable in objects.iter() {
         let view = commands.spawn_instance(ViewBundle::new(observable));
         let mut view = ViewBuilder(view);
-        T::observe(world, observable, &mut view);
+        S::observe(world, observable, &mut view);
         let view = view.instance();
         let entity = observable.entity();
         commands.add(move |world: &mut World| {
@@ -173,7 +181,7 @@ fn observe<T: Observe>(
     }
 }
 
-fn despawn<T: Observe>(
+fn despawn<T: Kind>(
     views: Query<InstanceRef<View<T>>>,
     mut observables: ResMut<Observables>,
     query: Query<(), T::Filter>,
@@ -215,7 +223,7 @@ fn despawn<T: Observe>(
 ///     }
 /// }
 /// ```
-pub fn rebuild<T: Observe>(observer: InstanceRef<Observer<T>>, commands: &mut Commands) {
+pub fn rebuild<T: Kind>(observer: InstanceRef<Observer<T>>, commands: &mut Commands) {
     let entity = observer.entity();
     let view = observer.view();
     commands.entity(view.entity()).despawn_recursive();
