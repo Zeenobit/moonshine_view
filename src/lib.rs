@@ -1,6 +1,7 @@
+#![doc = include_str!("../README.md")]
+
 use std::any::TypeId;
 
-#[doc = include_str!("../README.md")]
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_hierarchy::prelude::*;
@@ -47,7 +48,7 @@ pub trait RegisterView {
     }
 }
 
-impl RegisterView for &mut App {
+impl RegisterView for App {
     fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
         self.add_systems(PreUpdate, spawn::<T, V>.after(LoadSystem::Load));
         let mut viewables = self.world.get_resource_or_insert_with(Viewables::default);
