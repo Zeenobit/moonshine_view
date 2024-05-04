@@ -1,6 +1,12 @@
 # 👁️ Moonshine View
 
-A generic solution for separating the game view from game state designed for [Moonshine Save](https://github.com/Zeenobit/moonshine_save) framework.
+[![crates.io](https://img.shields.io/crates/v/moonshine-view)](https://crates.io/crates/moonshine-view)
+[![downloads](https://img.shields.io/crates/dr/moonshine-view?label=downloads)](https://crates.io/crates/moonshine-view)
+[![docs.rs](https://docs.rs/moonshine-save/badge.svg)](https://docs.rs/moonshine-view)
+[![license](https://img.shields.io/crates/l/moonshine-view)](https://github.com/Zeenobit/moonshine_view/blob/main/LICENSE)
+[![stars](https://img.shields.io/github/stars/Zeenobit/moonshine_view)](https://github.com/Zeenobit/moonshine_view)
+
+Generic [Model/View](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller) framework designed for [Bevy](https://bevyengine.org/) and the [Moonshine](https://github.com/Zeenobit/moonshine_core) framework.
 
 ## Overview
 
