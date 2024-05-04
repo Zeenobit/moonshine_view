@@ -245,3 +245,9 @@ See [shapes.rs](examples/shapes.rs) for a complete usage example.
 [`View<T>`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.View.html
 [`RegisterView`]:https://docs.rs/moonshine-view/latest/moonshine_view/trait.RegisterView.html
 [`ViewBuilder`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.ViewBuilder.html
+
+## Support
+
+Please [post an issue](https://github.com/Zeenobit/moonshine_view/issues/new) for any bugs, questions, or suggestions.
+
+You may also contact me on the official [Bevy Discord](https://discord.gg/bevy) server as **@Zeenobit**.
