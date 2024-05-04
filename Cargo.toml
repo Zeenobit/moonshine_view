@@ -15,9 +15,9 @@ bevy_app = "0.13.*"
 bevy_ecs = "0.13.*"
 bevy_hierarchy = "0.13.*"
 bevy_utils = "0.13.*"
-moonshine-kind = { version = "0.1.*", path = "../../core/crates/kind" }
-moonshine-save = { version = "0.3.*", path = "../../core/crates/save" }
-moonshine-object = { version = "0.1.*", path = "../../core/crates/object" }
+moonshine-kind = { version = "0.1.*", path = "../../crates/core/crates/kind" }
+moonshine-save = { version = "0.3.*", path = "../../crates/core/crates/save" }
+moonshine-object = { version = "0.1.*", path = "../../crates/core/crates/object" }
 
 [dev-dependencies]
 rand = "0.8.*"
