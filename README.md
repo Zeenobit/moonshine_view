@@ -50,8 +50,8 @@ You may also define a [`Kind`] as viewable:
 
 ```rust
 use bevy::prelude::*;
+use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
-use moonshine_kind::prelude::*;
 
 #[derive(Component)]
 struct Bird;
@@ -82,8 +82,8 @@ You may even define views polymorphically.
 
 ```rust
 use bevy::prelude::*;
+use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
-use moonshine_kind::prelude::*;
 
 #[derive(Component)]
 struct Bird;
@@ -223,7 +223,7 @@ This means the entire view entity hierarchy is despawned whenever a new game sta
 
 Because the view system uses [`Kind`] for type safety, there is no access to views of a given viewable entity via a component.
 
-Instead, you may query all views associated with an entity by using the `Observables` resource:
+Instead, you may query all views associated with an entity by using the `Viewables` resource:
 
 ```rust
 use bevy::prelude::*;

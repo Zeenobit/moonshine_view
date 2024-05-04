@@ -257,8 +257,8 @@ fn despawn<T: Kind>(
 /// # Example
 /// ```
 /// # use bevy::prelude::*;
+/// # use moonshine_core::prelude::*;
 /// # use moonshine_view::prelude::*;
-/// # use moonshine_kind::prelude::*; // For `intsance_ref` method
 ///
 /// #[derive(Component)]
 /// enum Shape {
