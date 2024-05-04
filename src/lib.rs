@@ -7,14 +7,12 @@ use bevy_ecs::prelude::*;
 use bevy_hierarchy::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
 
-use moonshine_kind::prelude::*;
-use moonshine_object::prelude::*;
-use moonshine_save::prelude::*;
+use moonshine_core::prelude::*;
 
 pub mod prelude {
     pub use super::{BuildView, Model, RegisterView, View, ViewBuilder, Viewables};
 
-    pub use moonshine_object::Object;
+    pub use moonshine_core::object::Object;
 
     // TODO: Remove
     pub use super::{Observables, Observe, Observer, RegisterObservable};

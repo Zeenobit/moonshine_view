@@ -2,9 +2,7 @@ use std::path::Path;
 
 use bevy::prelude::*;
 use bevy_vector_shapes::prelude::*;
-use moonshine_kind::prelude::*;
-use moonshine_object::prelude::*;
-use moonshine_save::prelude::*;
+use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
 
 fn main() {
