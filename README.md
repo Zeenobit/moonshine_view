@@ -6,7 +6,7 @@
 [![license](https://img.shields.io/crates/l/moonshine-view)](https://github.com/Zeenobit/moonshine_view/blob/main/LICENSE)
 [![stars](https://img.shields.io/github/stars/Zeenobit/moonshine_view)](https://github.com/Zeenobit/moonshine_view)
 
-Generic [Model/View](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller) framework designed for [Bevy](https://bevyengine.org/) and the [Moonshine](https://github.com/Zeenobit/moonshine_core) framework.
+Generic [Model/View](https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller) framework designed for [Bevy](https://bevyengine.org/) and the [Moonshine](https://github.com/Zeenobit/moonshine_core) save system.
 
 ## Overview
 
