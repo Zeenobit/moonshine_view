@@ -212,7 +212,7 @@ fn view_shape_position_changed(
 #[derive(Resource)]
 struct SaveRequest;
 
-impl SaveIntoFileRequest for SaveRequest {
+impl FilePath for SaveRequest {
     fn path(&self) -> &Path {
         Path::new("shapes.ron")
     }
@@ -221,7 +221,7 @@ impl SaveIntoFileRequest for SaveRequest {
 #[derive(Resource)]
 struct LoadRequest;
 
-impl LoadFromFileRequest for LoadRequest {
+impl FilePath for LoadRequest {
     fn path(&self) -> &Path {
         Path::new("shapes.ron")
     }
