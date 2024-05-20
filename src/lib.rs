@@ -93,6 +93,20 @@ impl<'a, T: Kind> ViewBuilder<'a, T> {
         self.0.with_children(|view| f(view));
         self
     }
+
+    /// Returns the [`InstanceCommands`] for the [`View`] [`Entity`].
+    ///
+    /// # Usage
+    ///
+    /// This is useful for more advanced operations on the view entity, or for modifying the world beyond
+    /// the view entity hierarchy.
+    ///
+    /// These types of operations should be avoided as for most cases, building the view should be
+    /// purely "additive" through adding components (see [`ViewBuilder::insert`]) or spawning
+    /// children (see [`ViewBuilder::insert_children`]).
+    pub fn commands(&mut self) -> &mut InstanceCommands<'a, View<T>> {
+        &mut self.0
+    }
 }
 
 /// [`Component`] of an [`Entity`] associated with a [`View`].
