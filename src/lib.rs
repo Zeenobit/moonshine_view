@@ -13,22 +13,7 @@ pub mod prelude {
     pub use super::{BuildView, Model, RegisterView, View, ViewBuilder, Viewables};
 
     pub use moonshine_core::object::Object;
-
-    // TODO: Remove
-    pub use super::{Observables, Observe, Observer, RegisterObservable};
 }
-
-#[deprecated(note = "use `RegisterViewer` instead")]
-pub use RegisterView as RegisterObservable;
-
-#[deprecated(note = "use `BuildView` instead")]
-pub use BuildView as Observe;
-
-#[deprecated(note = "use `Model` instead")]
-pub use Model as Observer;
-
-#[deprecated(note = "use `Viewables` instead")]
-pub use Viewables as Observables;
 
 /// Extension trait used to register views using an [`App`].
 pub trait RegisterView {
@@ -38,11 +23,6 @@ pub trait RegisterView {
     /// Registers a given [`Kind`] as viewable.
     fn register_viewable<T: BuildView>(&mut self) -> &mut Self {
         self.register_view::<T, T>()
-    }
-
-    #[deprecated(note = "use `register_viewable` instead")]
-    fn register_observable<T: BuildView>(&mut self) -> &mut Self {
-        self.register_viewable::<T>()
     }
 }
 
@@ -138,11 +118,6 @@ impl<T: Kind> View<T> {
     /// Returns the [`Model`] [`Instance`] associated with this [`View`].
     pub fn model(&self) -> Instance<T> {
         self.model
-    }
-
-    #[deprecated(note = "use `model` instead")]
-    pub fn target(&self) -> Instance<T> {
-        self.model()
     }
 }
 
