@@ -10,7 +10,7 @@ use bevy_utils::{tracing::debug, HashMap, HashSet};
 use moonshine_core::prelude::*;
 
 pub mod prelude {
-    pub use super::{BuildView, Model, RegisterView, View, ViewBuilder, Viewables};
+    pub use super::{BuildView, Model, RegisterView, View, ViewCommands, Viewables};
 
     pub use moonshine_core::object::Object;
 }
@@ -43,51 +43,10 @@ pub trait BuildView<T: Kind = Self>: Kind {
     /// Called when a new [`Instance`] of [`Kind`] `T` is spawned without a [`View`].
     ///
     /// Remember to register this type using [`RegisterView`] for this to happen.
-    fn build(_world: &World, _object: Object<T>, view: &mut ViewBuilder<T>);
+    fn build(_world: &World, _object: Object<T>, view: &mut ViewCommands<T>);
 }
 
-/// Used to build a [`View`] [`Entity`] for a given [`Instance`] of [`Kind`] `T`.
-///
-/// See [`BuildView`] for more information.
-pub struct ViewBuilder<'a, T: Kind>(InstanceCommands<'a, View<T>>);
-
-impl<'a, T: Kind> ViewBuilder<'a, T> {
-    /// Returns the [`View`] [`Instance`].
-    pub fn instance(&self) -> Instance<View<T>> {
-        self.0.instance()
-    }
-
-    /// Returns the [`View`] [`Entity`].
-    pub fn entity(&self) -> Entity {
-        self.0.entity()
-    }
-
-    /// Inserts a new [`Bundle`] into the [`View`] [`Entity`].
-    pub fn insert(&mut self, bundle: impl Bundle) -> &mut Self {
-        self.0.insert(bundle);
-        self
-    }
-
-    /// Adds some children to the [`View`] [`Entity`].
-    pub fn insert_children<F: FnOnce(&mut ChildBuilder)>(&mut self, f: F) -> &mut Self {
-        self.0.with_children(|view| f(view));
-        self
-    }
-
-    /// Returns the [`InstanceCommands`] for the [`View`] [`Entity`].
-    ///
-    /// # Usage
-    ///
-    /// This is useful for more advanced operations on the view entity, or for modifying the world beyond
-    /// the view entity hierarchy.
-    ///
-    /// These types of operations should be avoided as for most cases, building the view should be
-    /// purely "additive" through adding components (see [`ViewBuilder::insert`]) or spawning
-    /// children (see [`ViewBuilder::insert_children`]).
-    pub fn commands(&mut self) -> &mut InstanceCommands<'a, View<T>> {
-        &mut self.0
-    }
-}
+pub type ViewCommands<'a, T> = InstanceCommands<'a, View<T>>;
 
 /// [`Component`] of an [`Entity`] associated with a [`View`].
 #[derive(Component)]
@@ -205,8 +164,7 @@ fn spawn<T: Kind, S: BuildView<T>>(
     mut commands: Commands,
 ) {
     for object in objects.iter() {
-        let view = commands.spawn_instance(ViewBundle::new(object));
-        let mut view = ViewBuilder(view);
+        let mut view = commands.spawn_instance(ViewBundle::new(object));
         S::build(world, object, &mut view);
         let view = view.instance();
         let entity = object.entity();

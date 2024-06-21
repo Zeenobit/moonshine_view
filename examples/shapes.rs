@@ -75,7 +75,7 @@ impl CircleBundle {
 struct Square;
 
 impl BuildView<Shape> for Square {
-    fn build(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
+    fn build(world: &World, object: Object<Shape>, view: &mut ViewCommands<Shape>) {
         info!("{object:?} is observed!");
         let transform = world.get::<Position>(object.entity()).unwrap().into();
         view.insert(ShapeBundle::rect(
@@ -94,7 +94,7 @@ impl BuildView<Shape> for Square {
 struct Circle;
 
 impl BuildView<Shape> for Circle {
-    fn build(world: &World, object: Object<Shape>, view: &mut ViewBuilder<Shape>) {
+    fn build(world: &World, object: Object<Shape>, view: &mut ViewCommands<Shape>) {
         info!("{object:?} is observed!");
         let transform = world.get::<Position>(object.entity()).unwrap().into();
         view.insert(ShapeBundle::circle(
