@@ -81,7 +81,7 @@ impl BuildView<Shape> for Square {
         view.insert(ShapeBundle::rect(
             &ShapeConfig {
                 transform,
-                color: Color::ORANGE,
+                color: bevy::color::palettes::css::ORANGE.into(),
                 ..ShapeConfig::default_2d()
             },
             Vec2::ONE * 10.,
@@ -100,7 +100,7 @@ impl BuildView<Shape> for Circle {
         view.insert(ShapeBundle::circle(
             &ShapeConfig {
                 transform,
-                color: Color::CYAN,
+                color: bevy::color::palettes::css::DARK_CYAN.into(),
                 ..ShapeConfig::default_2d()
             },
             5.,

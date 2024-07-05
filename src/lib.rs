@@ -29,7 +29,9 @@ pub trait RegisterView {
 impl RegisterView for App {
     fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
         self.add_systems(PreUpdate, spawn::<T, V>.after(LoadSystem::Load));
-        let mut viewables = self.world.get_resource_or_insert_with(Viewables::default);
+        let mut viewables = self
+            .world_mut()
+            .get_resource_or_insert_with(Viewables::default);
         if !viewables.is_viewable_kind::<T>() {
             viewables.add_kind::<T>();
             self.add_systems(Last, despawn::<T>);
