@@ -10,7 +10,7 @@ use bevy_utils::{tracing::debug, HashMap, HashSet};
 use moonshine_core::prelude::*;
 
 pub mod prelude {
-    pub use super::{BuildView, Model, RegisterView, View, ViewCommands, Viewables};
+    pub use super::{BuildView, RegisterView, View, ViewCommands, Viewable, Viewables};
 
     pub use moonshine_core::object::Object;
 }
@@ -52,17 +52,20 @@ pub type ViewCommands<'a, T> = InstanceCommands<'a, View<T>>;
 
 /// [`Component`] of an [`Entity`] associated with a [`View`].
 #[derive(Component)]
-pub struct Model<T: Kind> {
+pub struct Viewable<T: Kind> {
     view: Instance<View<T>>,
 }
 
-impl<T: Kind> Model<T> {
+impl<T: Kind> Viewable<T> {
     fn new(view: Instance<View<T>>) -> Self {
         Self { view }
     }
 }
 
-impl<T: Kind> Model<T> {
+#[deprecated(note = "Use `Viewable` instead")]
+pub type Model<T> = Viewable<T>;
+
+impl<T: Kind> Viewable<T> {
     /// Returns the [`View`] [`Instance`] associated with this [`Model`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
@@ -161,7 +164,7 @@ impl Viewables {
 }
 
 fn spawn<T: Kind, S: BuildView<T>>(
-    objects: Objects<T, (Without<Model<T>>, S::Filter)>,
+    objects: Objects<T, (Without<Viewable<T>>, S::Filter)>,
     world: &World,
     mut commands: Commands,
 ) {
@@ -173,7 +176,7 @@ fn spawn<T: Kind, S: BuildView<T>>(
         commands.add(move |world: &mut World| {
             world.resource_mut::<Viewables>().add(entity, view);
         });
-        commands.entity(entity).insert(Model::new(view));
+        commands.entity(entity).insert(Viewable::new(view));
         debug!("{view:?} spawned for {entity:?}");
     }
 }
@@ -188,7 +191,7 @@ fn despawn<T: Kind>(
         let view = view.instance();
         if query.get(model.entity()).is_err() {
             if let Some(mut entity) = commands.get_entity(model.entity()) {
-                entity.remove::<Model<T>>();
+                entity.remove::<Viewable<T>>();
             }
             commands.entity(view.entity()).despawn_recursive();
             commands.add(move |world: &mut World| {
@@ -228,12 +231,12 @@ fn despawn<T: Kind>(
 ///     }
 /// }
 /// ```
-pub fn rebuild<T: Kind>(model: InstanceRef<Model<T>>, commands: &mut Commands) {
+pub fn rebuild<T: Kind>(model: InstanceRef<Viewable<T>>, commands: &mut Commands) {
     let entity = model.entity();
     let view = model.view();
     commands.entity(view.entity()).despawn_recursive();
     commands.add(move |world: &mut World| {
         world.resource_mut::<Viewables>().remove(entity, view);
     });
-    commands.entity(entity).remove::<Model<T>>();
+    commands.entity(entity).remove::<Viewable<T>>();
 }

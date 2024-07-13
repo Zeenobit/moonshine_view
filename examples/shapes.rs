@@ -199,7 +199,7 @@ fn randomize_positions(mut positions: Query<&mut Position>) {
 }
 
 fn view_shape_position_changed(
-    shapes: Query<(&Model<Shape>, &Position), Changed<Position>>,
+    shapes: Query<(&Viewable<Shape>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
     for (model, position) in shapes.iter() {
