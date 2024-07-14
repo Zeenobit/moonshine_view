@@ -66,22 +66,27 @@ impl<T: Kind> Viewable<T> {
 pub type Model<T> = Viewable<T>;
 
 impl<T: Kind> Viewable<T> {
-    /// Returns the [`View`] [`Instance`] associated with this [`Model`].
+    /// Returns the [`View`] [`Instance`] associated with this [`Viewable`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
     }
 }
 
-/// [`Component`] of an [`Entity`] associated with a [`Model`].
+/// [`Component`] of an [`Entity`] associated with a [`Viewable`].
 #[derive(Component)]
 pub struct View<T: Kind> {
-    model: Instance<T>,
+    viewable: Instance<T>,
 }
 
 impl<T: Kind> View<T> {
-    /// Returns the [`Model`] [`Instance`] associated with this [`View`].
+    #[deprecated(note = "Use `viewable` instead")]
     pub fn model(&self) -> Instance<T> {
-        self.model
+        self.viewable
+    }
+
+    /// Returns the associated viewable entity.
+    pub fn viewable(&self) -> Instance<T> {
+        self.viewable
     }
 }
 
@@ -92,10 +97,11 @@ struct ViewBundle<T: Kind> {
 }
 
 impl<T: Kind> ViewBundle<T> {
-    pub fn new(model: impl Into<Instance<T>>) -> Self {
-        let model = model.into();
+    pub fn new(viewable: impl Into<Instance<T>>) -> Self {
         Self {
-            view: View { model },
+            view: View {
+                viewable: viewable.into(),
+            },
             unload: Unload,
         }
     }
@@ -109,32 +115,32 @@ impl<T: Kind> KindBundle for ViewBundle<T> {
 ///
 /// # Usage
 ///
-/// Typically, you want to access models or views using [`Model`] and [`View`] components.
-/// However, in some cases it may be needed to access **all** views for a given model.
+/// Typically, you want to access viewables or views using [`Viewable`] and [`View`] components.
+/// However, in some cases it may be needed to access **all** views for a given viewable.
 /// This [`Resource`] provides an interface for this specific purpose.
 #[derive(Resource, Default)]
 pub struct Viewables {
-    models: HashMap<Entity, HashSet<Entity>>,
+    entities: HashMap<Entity, HashSet<Entity>>,
     kinds: HashMap<TypeId, HashSet<Entity>>,
 }
 
 impl Viewables {
     pub fn contains(&self, entity: Entity) -> bool {
-        self.models.contains_key(&entity)
+        self.entities.contains_key(&entity)
     }
 
-    /// Iterates over all viewed [`Model`] entities.
+    /// Iterates over all viewed [`Viewable`] entities.
     pub fn iter(&self) -> impl Iterator<Item = Entity> + '_ {
-        self.models.keys().copied()
+        self.entities.keys().copied()
     }
 
     pub fn is_viewable_kind<T: Kind>(&self) -> bool {
         self.kinds.contains_key(&TypeId::of::<T>())
     }
 
-    /// Iterates over all views for a given [`Model`] [`Entity`].
+    /// Iterates over all views for a given [`Viewable`] [`Entity`].
     pub fn views(&self, entity: Entity) -> impl Iterator<Item = Entity> + '_ {
-        self.models
+        self.entities
             .get(&entity)
             .into_iter()
             .flat_map(|views| views.iter().copied())
@@ -145,7 +151,10 @@ impl Viewables {
     }
 
     fn add<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
-        self.models.entry(entity).or_default().insert(view.entity());
+        self.entities
+            .entry(entity)
+            .or_default()
+            .insert(view.entity());
         self.kinds
             .get_mut(&TypeId::of::<T>())
             .expect("kind must be registered as viewable")
@@ -153,10 +162,10 @@ impl Viewables {
     }
 
     fn remove<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
-        let views = self.models.get_mut(&entity).unwrap();
+        let views = self.entities.get_mut(&entity).unwrap();
         views.remove(&view.entity());
         if views.is_empty() {
-            self.models.remove(&entity);
+            self.entities.remove(&entity);
         }
         let kinds = self.kinds.get_mut(&TypeId::of::<T>()).unwrap();
         kinds.remove(&view.entity());
@@ -187,24 +196,24 @@ fn despawn<T: Kind>(
     mut commands: Commands,
 ) {
     for view in views.iter() {
-        let model = view.model();
+        let viewable = view.viewable();
         let view = view.instance();
-        if query.get(model.entity()).is_err() {
-            if let Some(mut entity) = commands.get_entity(model.entity()) {
+        if query.get(viewable.entity()).is_err() {
+            if let Some(mut entity) = commands.get_entity(viewable.entity()) {
                 entity.remove::<Viewable<T>>();
             }
             commands.entity(view.entity()).despawn_recursive();
             commands.add(move |world: &mut World| {
                 world
                     .resource_mut::<Viewables>()
-                    .remove(model.entity(), view);
+                    .remove(viewable.entity(), view);
             });
-            debug!("{view:?} despawned for {model:?}");
+            debug!("{view:?} despawned for {viewable:?}");
         }
     }
 }
 
-/// Despawns the current [`View`] associated with this [`Model`] and rebuilds a new one.
+/// Despawns the current [`View`] associated with this [`Viewable`] and rebuilds a new one.
 ///
 /// # Example
 /// ```
@@ -219,21 +228,21 @@ fn despawn<T: Kind>(
 /// }
 ///
 /// impl BuildView for Shape {
-///     fn build(world: &World, object: Object<Self>, view: &mut ViewBuilder<Self>) {
+///     fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
 ///         let shape = world.get::<Shape>(object.entity());
 ///         // ...
 ///     }
 /// }
 ///
-/// fn rebuild_shape_views(query: Query<InstanceRef<Model<Shape>>>, mut commands: Commands) {
-///     for model in query.iter() {
-///         moonshine_view::rebuild(model, &mut commands);
+/// fn rebuild_shape_views(query: Query<InstanceRef<Viewable<Shape>>>, mut commands: Commands) {
+///     for viewable in query.iter() {
+///         moonshine_view::rebuild(viewable, &mut commands);
 ///     }
 /// }
 /// ```
-pub fn rebuild<T: Kind>(model: InstanceRef<Viewable<T>>, commands: &mut Commands) {
-    let entity = model.entity();
-    let view = model.view();
+pub fn rebuild<T: Kind>(viewable: InstanceRef<Viewable<T>>, commands: &mut Commands) {
+    let entity = viewable.entity();
+    let view = viewable.view();
     commands.entity(view.entity()).despawn_recursive();
     commands.add(move |world: &mut World| {
         world.resource_mut::<Viewables>().remove(entity, view);

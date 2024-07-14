@@ -202,8 +202,8 @@ fn view_shape_position_changed(
     shapes: Query<(&Viewable<Shape>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
-    for (model, position) in shapes.iter() {
-        let view = model.view();
+    for (viewable, position) in shapes.iter() {
+        let view = viewable.view();
         let mut transform = transform.get_mut(view.entity()).unwrap();
         *transform = position.into();
     }
