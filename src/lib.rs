@@ -1,16 +1,21 @@
 #![doc = include_str!("../README.md")]
 
-use std::any::TypeId;
+use std::{
+    any::TypeId,
+    ops::{Deref, DerefMut},
+};
 
 use bevy_app::prelude::*;
-use bevy_ecs::prelude::*;
+use bevy_ecs::{prelude::*, query::QueryData};
 use bevy_hierarchy::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
 
 use moonshine_core::prelude::*;
 
 pub mod prelude {
-    pub use super::{BuildView, RegisterView, View, ViewCommands, Viewable, Viewables};
+    pub use super::{
+        BuildView, RegisterView, View, ViewCommands, Viewable, ViewableMut, ViewableRef, Viewables,
+    };
 
     pub use moonshine_core::object::Object;
 }
@@ -69,6 +74,91 @@ impl<T: Kind> Viewable<T> {
     /// Returns the [`View`] [`Instance`] associated with this [`Viewable`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
+    }
+}
+
+#[derive(QueryData)]
+pub struct ViewableRef<T: Component> {
+    pub instance: InstanceRef<'static, T>,
+    pub viewable: &'static Viewable<T>,
+}
+
+impl<T: Component> ViewableRefItem<'_, T> {
+    pub fn entity(&self) -> Entity {
+        self.instance.entity()
+    }
+
+    pub fn instance(&self) -> Instance<T> {
+        self.instance.instance()
+    }
+
+    pub fn view(&self) -> Instance<View<T>> {
+        self.viewable.view()
+    }
+}
+
+impl<T: Component> Deref for ViewableRefItem<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.instance.deref()
+    }
+}
+
+#[derive(QueryData)]
+#[query_data(mutable)]
+pub struct ViewableMut<T: Component> {
+    pub instance: InstanceMut<T>,
+    pub viewable: &'static Viewable<T>,
+}
+
+impl<T: Component> ViewableMutReadOnlyItem<'_, T> {
+    pub fn entity(&self) -> Entity {
+        self.instance.entity()
+    }
+
+    pub fn instance(&self) -> Instance<T> {
+        self.instance.instance()
+    }
+
+    pub fn view(&self) -> Instance<View<T>> {
+        self.viewable.view()
+    }
+}
+
+impl<T: Component> Deref for ViewableMutReadOnlyItem<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.instance.deref()
+    }
+}
+
+impl<T: Component> ViewableMutItem<'_, T> {
+    pub fn entity(&self) -> Entity {
+        self.instance.entity()
+    }
+
+    pub fn instance(&self) -> Instance<T> {
+        self.instance.instance()
+    }
+
+    pub fn view(&self) -> Instance<View<T>> {
+        self.viewable.view()
+    }
+}
+
+impl<T: Component> Deref for ViewableMutItem<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.instance.deref()
+    }
+}
+
+impl<T: Component> DerefMut for ViewableMutItem<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.instance.deref_mut()
     }
 }
 
