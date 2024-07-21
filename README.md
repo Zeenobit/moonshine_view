@@ -26,6 +26,7 @@ An [`Entity`] is **Viewable** if it has at least one component which implements 
 
 ```rust
 use bevy::prelude::*;
+use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
 
 #[derive(Component)]
@@ -137,6 +138,7 @@ The "push" approach should be preferred because it often leads to less iteration
 
 ```rust
 use bevy::prelude::*;
+use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
 
 #[derive(Component)]

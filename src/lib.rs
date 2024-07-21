@@ -16,8 +16,6 @@ pub mod prelude {
     pub use super::{
         BuildView, RegisterView, View, ViewCommands, Viewable, ViewableMut, ViewableRef, Viewables,
     };
-
-    pub use moonshine_core::object::Object;
 }
 
 /// Extension trait used to register views using an [`App`].
