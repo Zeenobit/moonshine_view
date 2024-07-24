@@ -10,7 +10,7 @@ use bevy_ecs::{prelude::*, query::QueryData};
 use bevy_hierarchy::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
 
-use moonshine_core::prelude::*;
+use moonshine_core::{check::CheckSystems, prelude::*};
 
 pub mod prelude {
     pub use super::{
@@ -31,7 +31,7 @@ pub trait RegisterView {
 
 impl RegisterView for App {
     fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
-        self.add_systems(PreUpdate, spawn::<T, V>.after(LoadSystem::Load));
+        self.add_systems(PreUpdate, spawn::<T, V>.after(CheckSystems));
         let mut viewables = self
             .world_mut()
             .get_resource_or_insert_with(Viewables::default);
