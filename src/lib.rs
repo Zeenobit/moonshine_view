@@ -287,16 +287,18 @@ fn despawn<T: Kind>(
         let viewable = view.viewable();
         let view = view.instance();
         if query.get(viewable.entity()).is_err() {
-            if let Some(mut entity) = commands.get_entity(viewable.entity()) {
-                entity.remove::<Viewable<T>>();
-            }
-            commands.entity(view.entity()).despawn_recursive();
             commands.add(move |world: &mut World| {
+                if let Some(mut entity) = world.get_entity_mut(viewable.entity()) {
+                    entity.remove::<Viewable<T>>();
+                }
+                if let Some(view_entity) = world.get_entity_mut(view.entity()) {
+                    view_entity.despawn_recursive();
+                }
                 world
                     .resource_mut::<Viewables>()
                     .remove(viewable.entity(), view);
+                debug!("{view:?} despawned for {viewable:?}");
             });
-            debug!("{view:?} despawned for {viewable:?}");
         }
     }
 }
