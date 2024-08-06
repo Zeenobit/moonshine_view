@@ -25,7 +25,7 @@ fn main() {
             PreUpdate,
             (
                 save_default().into_file_on_request::<SaveRequest>(),
-                load_from_file_on_request::<LoadRequest>(),
+                load(file_from_resource::<LoadRequest>()),
             ),
         )
         // Gameplay Systems:
