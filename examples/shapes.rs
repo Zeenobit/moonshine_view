@@ -24,7 +24,7 @@ fn main() {
         .add_systems(
             PreUpdate,
             (
-                save_default().into_file_on_request::<SaveRequest>(),
+                save_default().into(file_from_resource::<SaveRequest>()),
                 load(file_from_resource::<LoadRequest>()),
             ),
         )
