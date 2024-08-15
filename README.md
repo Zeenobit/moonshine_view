@@ -120,7 +120,7 @@ This is useful when you want to build a different version of the same view for m
 
 ### Viewable ⇄ View
 
-When a viewable entity is spawned, a **View Entity**.
+When a viewable entity is spawned, a **View Entity** is spawned with it.
 
 A view entity is an entity with at least one [`View<T>`] component. Each [`View<T>`] is associated with its model entity via [`Viewable<T>`].
 
