@@ -15,24 +15,35 @@ pub mod prelude {
 
 /// Extension trait used to register views using an [`App`].
 pub trait RegisterView {
-    /// Registers a view for a given [`Kind`].
-    fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self;
+    /// Adds a view for a given [`Kind`].
+    fn add_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self;
 
-    /// Registers a given [`Kind`] as viewable.
+    /// Adds a given [`Kind`] as viewable.
+    fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
+        self.add_view::<T, T>()
+    }
+
+    #[deprecated(note = "Use `add_view` instead")]
+    fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
+        self.add_view::<T, V>()
+    }
+
+    #[deprecated(note = "Use `add_viewable` instead")]
     fn register_viewable<T: BuildView>(&mut self) -> &mut Self {
-        self.register_view::<T, T>()
+        self.add_viewable::<T>()
     }
 }
 
 impl RegisterView for App {
-    fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
-        self.add_systems(PreUpdate, spawn::<T, V>.after(CheckSystems));
+    fn add_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
+        self.add_systems(PreUpdate, build_view::<T, V>.after(spawn_view::<T>));
         let mut viewables = self
             .world_mut()
             .get_resource_or_insert_with(Viewables::default);
         if !viewables.is_viewable_kind::<T>() {
             viewables.add_kind::<T>();
-            self.add_systems(Last, despawn::<T>);
+            self.add_systems(PreUpdate, spawn_view::<T>.after(CheckSystems));
+            self.add_systems(Last, despawn_view::<T>);
         }
         self
     }
@@ -170,15 +181,9 @@ impl Viewables {
     }
 }
 
-fn spawn<T: Kind, S: BuildView<T>>(
-    objects: Objects<T, (Without<Viewable<T>>, S::Filter)>,
-    world: &World,
-    mut commands: Commands,
-) {
+fn spawn_view<T: Kind>(objects: Objects<T, Without<Viewable<T>>>, mut commands: Commands) {
     for object in objects.iter() {
-        let mut view = commands.spawn_instance(ViewBundle::new(object));
-        S::build(world, object, view.reborrow());
-        let view = view.instance();
+        let view = commands.spawn_instance(ViewBundle::new(object)).instance();
         let entity = object.entity();
         commands.add(move |world: &mut World| {
             world.resource_mut::<Viewables>().add(entity, view);
@@ -188,7 +193,18 @@ fn spawn<T: Kind, S: BuildView<T>>(
     }
 }
 
-fn despawn<T: Kind>(
+fn build_view<T: Kind, S: BuildView<T>>(
+    objects: Objects<T, (Added<Viewable<T>>, S::Filter)>,
+    world: &World,
+    mut commands: Commands,
+) {
+    for object in objects.iter() {
+        let viewable = world.get::<Viewable<T>>(object.entity()).unwrap();
+        S::build(world, object, commands.instance(viewable.view()));
+    }
+}
+
+fn despawn_view<T: Kind>(
     views: Query<InstanceRef<View<T>>>,
     query: Query<(), T::Filter>,
     mut commands: Commands,

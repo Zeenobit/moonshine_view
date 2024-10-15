@@ -18,8 +18,9 @@ fn main() {
         .register_type::<Circle>()
         .register_type::<Position>()
         // Register Shapes as observale kinds:
-        .register_view::<Shape, Square>()
-        .register_view::<Shape, Circle>()
+        .add_view::<Shape, Square>()
+        .add_view::<Shape, Circle>()
+        .add_view::<Shape, Special>()
         // Add Save/Load Pipelines:
         .add_systems(
             PreUpdate,
@@ -110,6 +111,26 @@ impl BuildView<Shape> for Circle {
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
+struct Special;
+
+impl BuildView<Shape> for Special {
+    fn build(_world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
+        view.with_children(|view| {
+            view.spawn(ShapeBundle::circle(
+                &ShapeConfig {
+                    color: bevy::color::palettes::css::RED.into(),
+                    hollow: true,
+                    thickness: 2.,
+                    ..ShapeConfig::default_2d()
+                },
+                8.,
+            ));
+        });
+    }
+}
+
+#[derive(Component, Default, Reflect)]
+#[reflect(Component)]
 struct Position(pub Vec2);
 
 impl Position {
@@ -144,7 +165,8 @@ fn setup(mut commands: Commands) {
     Press 'S' to Save all shapes\n
     Press 'L' to Load all shapes\n
     Press 'R' to Remove all shapes\n
-    Press 'M' to Move all shapes to new random positions\n";
+    Press 'M' to Move all shapes to new random positions\n
+    Hold 'Ctrl' to spawn a Special shape\n";
 
     commands.spawn(Camera2dBundle::default());
     commands.spawn(TextBundle {
@@ -153,40 +175,50 @@ fn setup(mut commands: Commands) {
     });
 }
 
-fn handle_mouse(input: Res<ButtonInput<MouseButton>>, mut commands: Commands) {
-    if input.just_pressed(MouseButton::Left) {
+fn handle_mouse(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    mouse: Res<ButtonInput<MouseButton>>,
+    mut commands: Commands,
+) {
+    if mouse.just_pressed(MouseButton::Left) {
         let position = Position::random_in_circle(Vec2::ZERO, 200.);
         info!("Spawned a Square at {}", position.0);
-        commands.spawn(SquareBundle::new(position));
+        let mut shape = commands.spawn(SquareBundle::new(position));
+        if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
+            shape.insert(Special);
+        }
     }
-    if input.just_pressed(MouseButton::Right) {
+    if mouse.just_pressed(MouseButton::Right) {
         let position = Position::random_in_circle(Vec2::ZERO, 200.);
         info!("Spawned a Circle at {}", position.0);
-        commands.spawn(CircleBundle::new(position));
+        let mut shape = commands.spawn(CircleBundle::new(position));
+        if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
+            shape.insert(Special);
+        }
     }
 }
 
 fn handle_keyboard(
-    input: Res<ButtonInput<KeyCode>>,
+    keyboard: Res<ButtonInput<KeyCode>>,
     shapes: Query<Instance<Shape>>,
     positions: Query<&mut Position>,
     mut commands: Commands,
 ) {
-    if input.just_pressed(KeyCode::KeyS) {
+    if keyboard.just_pressed(KeyCode::KeyS) {
         info!("Save!");
         commands.insert_resource(SaveRequest);
     }
-    if input.just_pressed(KeyCode::KeyL) {
+    if keyboard.just_pressed(KeyCode::KeyL) {
         info!("Load!");
         commands.insert_resource(LoadRequest);
     }
-    if input.just_pressed(KeyCode::KeyR) {
+    if keyboard.just_pressed(KeyCode::KeyR) {
         info!("Reset!");
         for shape in shapes.iter() {
             commands.entity(shape.entity()).despawn_recursive();
         }
     }
-    if input.just_pressed(KeyCode::KeyM) {
+    if keyboard.just_pressed(KeyCode::KeyM) {
         info!("Move!");
         randomize_positions(positions);
     }

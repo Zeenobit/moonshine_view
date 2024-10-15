@@ -79,7 +79,9 @@ app.register_viewable::<Creature>();
 
 This is useful when you want to define the same view for multiple kinds of entities.
 
-You may even define views polymorphically.
+In the example above, `Creature::build` is called for both Monkies and Birds.
+
+Views may be defined polymorphically:
 
 ```rust
 use bevy::prelude::*;
@@ -117,6 +119,46 @@ app.register_view::<Creature, Bird>()
 ```
 
 This is useful when you want to build a different version of the same view for multiple kinds of entities.
+
+In the example above, `Bird::build` is called for Birds, while `Monkey::build` is called for Monkies.
+
+Multiple views may be associated with the same viewable kind:
+
+```rust
+use bevy::prelude::*;
+use moonshine_core::prelude::*;
+use moonshine_view::prelude::*;
+
+#[derive(Component)]
+struct Bird;
+
+#[derive(Component)]
+struct Monkey;
+
+struct Creature;
+
+impl BuildView for Creature {
+    fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
+        // All creatures have the same body!
+    }
+}
+
+impl BuildView<Creature> for Bird {
+    fn build(world: &World, object: Object<Creature>, view: &mut ViewCommands<Creature>) {
+        // Birds get wings!
+    }
+}
+
+impl BuildView<Creature> for Monkey {
+    fn build(world: &World, object: Object<Creature>, view: &mut ViewCommands<Creature>) {
+        // Monkeys get tails!
+    }
+}
+```
+
+This is useful when you share some aspects of a view between multiple kinds of entities.
+
+In the example above, `Creature::build` is called for both Monkies and Birds, while `Bird::build` is *also* called for Birds.
 
 ### Viewable ⇄ View
 
