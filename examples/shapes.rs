@@ -8,7 +8,7 @@ use moonshine_view::prelude::*;
 fn main() {
     App::new()
         .add_plugins((DefaultPlugins, ShapePlugin::default()))
-        // Register Shapes as observale kinds:
+        // Register Shapes as viewable:
         .add_view::<Shape, Square>()
         .add_view::<Shape, Circle>()
         .add_view::<Shape, Special>()
