@@ -7,16 +7,7 @@ use moonshine_view::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins((
-            DefaultPlugins,
-            ShapePlugin::default(),
-            SavePlugin,
-            LoadPlugin,
-        ))
-        // Register Shape components for Save/Load:
-        .register_type::<Square>()
-        .register_type::<Circle>()
-        .register_type::<Position>()
+        .add_plugins((DefaultPlugins, ShapePlugin::default()))
         // Register Shapes as observale kinds:
         .add_view::<Shape, Square>()
         .add_view::<Shape, Circle>()
