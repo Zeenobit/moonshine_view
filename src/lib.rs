@@ -43,7 +43,7 @@ pub trait BuildView<T: Kind = Self>: Kind {
     /// Called when a new [`Instance`] of [`Kind`] `T` is spawned without a [`View`].
     ///
     /// Remember to register this type using [`RegisterView`] for this to happen.
-    fn build(_world: &World, _object: Object<T>, view: &mut ViewCommands<T>);
+    fn build(_world: &World, _object: Object<T>, view: ViewCommands<T>);
 }
 
 pub type ViewCommands<'a, T> = InstanceCommands<'a, View<T>>;
@@ -177,7 +177,7 @@ fn spawn<T: Kind, S: BuildView<T>>(
 ) {
     for object in objects.iter() {
         let mut view = commands.spawn_instance(ViewBundle::new(object));
-        S::build(world, object, &mut view);
+        S::build(world, object, view.reborrow());
         let view = view.instance();
         let entity = object.entity();
         commands.add(move |world: &mut World| {
