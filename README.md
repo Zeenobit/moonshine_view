@@ -161,8 +161,8 @@ This is useful when you share some aspects of a view between multiple kinds of e
 In the example above, `Creature::build` is called for both Monkies and Birds, while `Bird::build` is *also* called for Birds.
 
 > [!WARNING]
-> Be mindful of ordering when defining multiples views for the same entity kind. The order is undefined!</br>
-> Prefer to insert components or children into views during build instead of modifying existing ones.
+> Order of operations is undefined when multiple views are built for the same entity kind.</br>
+> Prefer to add components/children when building views to avoid ordering issues.
 
 ### Viewable ⇄ View
 
