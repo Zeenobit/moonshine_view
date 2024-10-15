@@ -160,6 +160,10 @@ This is useful when you share some aspects of a view between multiple kinds of e
 
 In the example above, `Creature::build` is called for both Monkies and Birds, while `Bird::build` is *also* called for Birds.
 
+> [!WARNING]
+> Be careful when defining multiple views for the same kind of entity as the order in which they are built is undefined.
+> Prefer to have your views insert components or children, rather trying to modify existing ones.
+
 ### Viewable ⇄ View
 
 When a viewable entity is spawned, a **View Entity** is spawned with it.
