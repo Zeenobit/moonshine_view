@@ -33,7 +33,7 @@ use moonshine_view::prelude::*;
 struct Bird;
 
 impl BuildView for Bird {
-    fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
+    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
         let asset_server = world.resource::<AssetServer>();
         // ...
         for child in object.children() {
@@ -67,7 +67,7 @@ impl Kind for Creature {
 }
 
 impl BuildView for Creature {
-    fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
+    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
         // All creatures look the same!
     }
 }
@@ -101,21 +101,21 @@ impl Kind for Creature {
 }
 
 impl BuildView<Creature> for Bird {
-    fn build(world: &World, object: Object<Creature>, view: &mut ViewCommands<Creature>) {
+    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
         // Birds look different, but they're still creatures!
     }
 }
 
 impl BuildView<Creature> for Monkey {
-    fn build(world: &World, object: Object<Creature>, view: &mut ViewCommands<Creature>) {
+    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
         // Monkeys look different, but they're still creatures!
     }
 }
 
 // Polymorphic views are registered slightly differently:
 let mut app = App::new();
-app.register_view::<Creature, Bird>()
-    .register_view::<Creature, Monkey>();
+app.add_view::<Creature, Bird>()
+    .add_view::<Creature, Monkey>();
 ```
 
 This is useful when you want to build a different version of the same view for multiple kinds of entities.
@@ -137,20 +137,24 @@ struct Monkey;
 
 struct Creature;
 
+impl Kind for Creature {
+    type Filter = Or<(With<Bird>, With<Monkey>)>;
+}
+
 impl BuildView for Creature {
-    fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
+    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
         // All creatures have the same body!
     }
 }
 
 impl BuildView<Creature> for Bird {
-    fn build(world: &World, object: Object<Creature>, view: &mut ViewCommands<Creature>) {
+    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
         // Birds get wings!
     }
 }
 
 impl BuildView<Creature> for Monkey {
-    fn build(world: &World, object: Object<Creature>, view: &mut ViewCommands<Creature>) {
+    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
         // Monkeys get tails!
     }
 }
@@ -191,7 +195,7 @@ use moonshine_view::prelude::*;
 struct Bird;
 
 impl BuildView for Bird {
-    fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
+    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
         // ...
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "moonshine-view"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 license = "MIT"
 description = "Generic Model/View framework designed for Bevy"
@@ -11,13 +11,13 @@ homepage = "https://github.com/Zeenobit/moonshine_view"
 repository = "https://github.com/Zeenobit/moonshine_view"
 
 [dependencies]
-bevy_app = "0.14.*"
-bevy_ecs = "0.14.*"
-bevy_hierarchy = "0.14.*"
-bevy_utils = "0.14.*"
-moonshine-core = { version = "0.2.0", path = "../core" }
+bevy_app = "0.15.*"
+bevy_ecs = "0.15.*"
+bevy_hierarchy = "0.15.*"
+bevy_utils = "0.15.*"
+moonshine-core = { version = "0.2.1", path = "../core" }
 
 [dev-dependencies]
 rand = "0.8.*"
-bevy = "0.14.*"
+bevy = "0.15.*"
 bevy_vector_shapes = "0.8.0"

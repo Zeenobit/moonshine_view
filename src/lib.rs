@@ -185,7 +185,7 @@ fn spawn_view<T: Kind>(objects: Objects<T, Without<Viewable<T>>>, mut commands: 
     for object in objects.iter() {
         let view = commands.spawn_instance(ViewBundle::new(object)).instance();
         let entity = object.entity();
-        commands.add(move |world: &mut World| {
+        commands.queue(move |world: &mut World| {
             world.resource_mut::<Viewables>().add(entity, view);
         });
         commands.entity(entity).insert(Viewable::new(view));
@@ -213,11 +213,11 @@ fn despawn_view<T: Kind>(
         let viewable = view.viewable();
         let view = view.instance();
         if query.get(viewable.entity()).is_err() {
-            commands.add(move |world: &mut World| {
-                if let Some(mut entity) = world.get_entity_mut(viewable.entity()) {
+            commands.queue(move |world: &mut World| {
+                if let Ok(mut entity) = world.get_entity_mut(viewable.entity()) {
                     entity.remove::<Viewable<T>>();
                 }
-                if let Some(view_entity) = world.get_entity_mut(view.entity()) {
+                if let Ok(view_entity) = world.get_entity_mut(view.entity()) {
                     view_entity.despawn_recursive();
                 }
                 world
@@ -244,7 +244,7 @@ fn despawn_view<T: Kind>(
 /// }
 ///
 /// impl BuildView for Shape {
-///     fn build(world: &World, object: Object<Self>, view: &mut ViewCommands<Self>) {
+///     fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
 ///         let shape = world.get::<Shape>(object.entity());
 ///         // ...
 ///     }
@@ -260,7 +260,7 @@ pub fn rebuild<T: Kind>(viewable: InstanceRef<Viewable<T>>, commands: &mut Comma
     let entity = viewable.entity();
     let view = viewable.view();
     commands.entity(view.entity()).despawn_recursive();
-    commands.add(move |world: &mut World| {
+    commands.queue(move |world: &mut World| {
         world.resource_mut::<Viewables>().remove(entity, view);
     });
     commands.entity(entity).remove::<Viewable<T>>();
