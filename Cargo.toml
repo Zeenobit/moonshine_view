@@ -20,4 +20,4 @@ moonshine-core = { version = "0.2.1", path = "../core" }
 [dev-dependencies]
 rand = "0.8.*"
 bevy = "0.15.*"
-bevy_vector_shapes = "0.8.0"
+bevy_vector_shapes = "0.9.*"

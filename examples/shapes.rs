@@ -159,11 +159,8 @@ fn setup(mut commands: Commands) {
     Press 'M' to Move all shapes to new random positions\n
     Hold 'Ctrl' to spawn a Special shape\n";
 
-    commands.spawn(Camera2dBundle::default());
-    commands.spawn(TextBundle {
-        text: Text::from_section(HELP_TEXT, TextStyle::default()),
-        ..default()
-    });
+    commands.spawn(Camera2d);
+    commands.spawn(Text::new(HELP_TEXT));
 }
 
 fn handle_mouse(
