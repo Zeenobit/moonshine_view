@@ -131,6 +131,7 @@ impl<T: Kind> KindBundle for ViewBundle<T> {
 pub struct Viewables {
     entities: HashMap<Entity, HashSet<Entity>>,
     kinds: HashMap<TypeId, HashSet<Entity>>,
+    views: HashMap<Entity, Entity>,
 }
 
 impl Viewables {
@@ -145,6 +146,19 @@ impl Viewables {
 
     pub fn is_viewable_kind<T: Kind>(&self) -> bool {
         self.kinds.contains_key(&TypeId::of::<T>())
+    }
+
+    pub fn is_view(&self, entity: Entity) -> bool {
+        self.views.contains_key(&entity)
+    }
+
+    pub fn is_view_of_kind<T: Kind>(&self, entity: Entity) -> bool {
+        let Some(viewable) = self.views.get(&entity) else {
+            return false;
+        };
+        self.kinds
+            .get(&std::any::TypeId::of::<T>())
+            .is_some_and(|entities| entities.contains(viewable))
     }
 
     /// Iterates over all views for a given [`Viewable`] [`Entity`].
@@ -168,6 +182,8 @@ impl Viewables {
             .get_mut(&TypeId::of::<T>())
             .expect("kind must be registered as viewable")
             .insert(entity);
+        let previous = self.views.insert(view.entity(), entity);
+        debug_assert!(previous.is_none());
     }
 
     fn remove<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
@@ -178,6 +194,7 @@ impl Viewables {
         }
         let kinds = self.kinds.get_mut(&TypeId::of::<T>()).unwrap();
         kinds.remove(&view.entity());
+        self.views.remove(&view.entity());
     }
 }
 
