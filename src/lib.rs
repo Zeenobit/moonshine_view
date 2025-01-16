@@ -194,13 +194,38 @@ fn spawn_view<T: Kind>(objects: Objects<T, Without<Viewable<T>>>, mut commands: 
 }
 
 fn build_view<T: Kind, S: BuildView<T>>(
-    objects: Objects<T, (Added<Viewable<T>>, S::Filter)>,
+    objects: Objects<
+        T,
+        (
+            Or<(
+                Added<Viewable<T>>,
+                (With<Viewable<T>>, Without<Viewable<S>>),
+            )>,
+            S::Filter,
+        ),
+    >,
     world: &World,
     mut commands: Commands,
 ) {
     for object in objects.iter() {
-        let viewable = world.get::<Viewable<T>>(object.entity()).unwrap();
-        S::build(world, object, commands.instance(viewable.view()));
+        let base_viewable = world.get::<Viewable<T>>(object.entity()).unwrap();
+        let base_view = base_viewable.view();
+
+        // SAFE: `View<S>` will be inserted later.
+        let view = unsafe { base_view.cast_into_unchecked::<View<S>>() };
+
+        commands
+            .entity(object.entity())
+            .insert_if_new(Viewable::<S>::new(view));
+
+        commands
+            .entity(base_view.entity())
+            .insert_if_new(View::<S> {
+                // SAFE: `S::Filter` applied to query
+                viewable: unsafe { object.instance().cast_into_unchecked() },
+            });
+
+        S::build(world, object, commands.instance(base_view));
     }
 }
 
