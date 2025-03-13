@@ -18,6 +18,6 @@ bevy_utils = "0.15.*"
 moonshine-core = { version = "0.2.1", path = "../core" }
 
 [dev-dependencies]
-rand = "0.8.*"
+rand = "0.9.*"
 bevy = "0.15.*"
 bevy_vector_shapes = "0.9.*"
