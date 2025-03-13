@@ -127,9 +127,9 @@ struct Position(pub Vec2);
 impl Position {
     fn random_in_circle(origin: Vec2, radius: f32) -> Self {
         use rand::Rng;
-        let rng = &mut rand::thread_rng();
-        let r = rng.gen_range(0.0..radius);
-        let t = rng.gen_range(0.0..2.0 * std::f32::consts::PI);
+        let rng = &mut rand::rng();
+        let r = rng.random_range(0.0..radius);
+        let t = rng.random_range(0.0..2.0 * std::f32::consts::PI);
         let x = r * t.cos();
         let y = r * t.sin();
         let p = Vec2 { x, y };
