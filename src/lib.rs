@@ -22,16 +22,6 @@ pub trait RegisterView {
     fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
         self.add_view::<T, T>()
     }
-
-    #[deprecated(note = "Use `add_view` instead")]
-    fn register_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
-        self.add_view::<T, V>()
-    }
-
-    #[deprecated(note = "Use `add_viewable` instead")]
-    fn register_viewable<T: BuildView>(&mut self) -> &mut Self {
-        self.add_viewable::<T>()
-    }
 }
 
 impl RegisterView for App {
@@ -69,12 +59,7 @@ impl<T: Kind> Viewable<T> {
     fn new(view: Instance<View<T>>) -> Self {
         Self { view }
     }
-}
 
-#[deprecated(note = "Use `Viewable` instead")]
-pub type Model<T> = Viewable<T>;
-
-impl<T: Kind> Viewable<T> {
     /// Returns the [`View`] [`Instance`] associated with this [`Viewable`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
@@ -88,11 +73,6 @@ pub struct View<T: Kind> {
 }
 
 impl<T: Kind> View<T> {
-    #[deprecated(note = "Use `viewable` instead")]
-    pub fn model(&self) -> Instance<T> {
-        self.viewable
-    }
-
     /// Returns the associated viewable entity.
     pub fn viewable(&self) -> Instance<T> {
         self.viewable
