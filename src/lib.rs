@@ -180,7 +180,9 @@ impl Viewables {
 
 fn spawn_view<T: Kind>(objects: Objects<T, Without<Viewable<T>>>, mut commands: Commands) {
     for object in objects.iter() {
-        let view = commands.spawn_instance(ViewBundle::new(object)).instance();
+        let view_entity = commands.spawn(ViewBundle::new(object)).id();
+        // SAFE: `ViewBundle` will be inserted.
+        let view: Instance<View<T>> = unsafe { Instance::from_entity_unchecked(view_entity) };
         let entity = object.entity();
         commands.queue(move |world: &mut World| {
             world.resource_mut::<Viewables>().add(entity, view);
