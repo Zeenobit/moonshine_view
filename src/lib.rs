@@ -19,22 +19,27 @@ pub trait RegisterView {
     fn add_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self;
 
     /// Adds a given [`Kind`] as viewable.
-    fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
-        self.add_view::<T, T>()
-    }
+    fn add_viewable<T: BuildView>(&mut self) -> &mut Self;
 }
 
 impl RegisterView for App {
     fn add_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
         self.add_systems(PreUpdate, build_view::<T, V>.after(spawn_view::<T>));
+        self
+    }
+
+    /// Adds a given [`Kind`] as viewable.
+    fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
         let mut viewables = self
             .world_mut()
             .get_resource_or_insert_with(Viewables::default);
-        if !viewables.is_viewable_kind::<T>() {
-            viewables.add_kind::<T>();
-            self.add_systems(PreUpdate, spawn_view::<T>.after(CheckSystems));
-            self.add_systems(Last, despawn_view::<T>);
-        }
+        #[allow(deprecated)] // TODO: Remove
+        viewables.add_kind::<T>();
+        self.add_systems(
+            PreUpdate,
+            (spawn_view::<T>.after(CheckSystems), build_view::<T, T>).chain(),
+        );
+        self.add_systems(Last, despawn_view::<T>);
         self
     }
 }
@@ -124,6 +129,7 @@ impl Viewables {
         self.entities.keys().copied()
     }
 
+    #[deprecated]
     pub fn is_viewable_kind<T: Kind>(&self) -> bool {
         self.kinds.contains_key(&TypeId::of::<T>())
     }
@@ -132,6 +138,7 @@ impl Viewables {
         self.views.contains_key(&entity)
     }
 
+    #[deprecated]
     pub fn is_view_of_kind<T: Kind>(&self, entity: Entity) -> bool {
         let Some(viewable) = self.views.get(&entity) else {
             return false;
@@ -149,6 +156,7 @@ impl Viewables {
             .flat_map(|views| views.iter().copied())
     }
 
+    #[deprecated]
     fn add_kind<T: Kind>(&mut self) {
         self.kinds.insert(TypeId::of::<T>(), HashSet::default());
     }
