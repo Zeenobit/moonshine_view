@@ -24,25 +24,51 @@ pub trait RegisterView {
 
 impl RegisterView for App {
     fn add_view<T: Kind, V: BuildView<T>>(&mut self) -> &mut Self {
-        self.add_systems(PreUpdate, build_view::<T, V>.after(spawn_view::<T>));
+        self.add_systems(
+            PreUpdate,
+            build_view::<T, V>
+                .after(spawn_view::<T>)
+                .in_set(ViewSystems),
+        );
         self
     }
 
     /// Adds a given [`Kind`] as viewable.
     fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
+        if !self.is_plugin_added::<ViewPlugin>() {
+            self.add_plugins(ViewPlugin);
+        }
+
         let mut viewables = self
             .world_mut()
             .get_resource_or_insert_with(Viewables::default);
+
         #[allow(deprecated)] // TODO: Remove
         viewables.add_kind::<T>();
+
         self.add_systems(
             PreUpdate,
-            (spawn_view::<T>.after(CheckSystems), build_view::<T, T>).chain(),
+            (spawn_view::<T>, build_view::<T, T>)
+                .chain()
+                .in_set(ViewSystems),
         );
-        self.add_systems(Last, despawn_view::<T>);
+
+        self.add_systems(Last, despawn_view::<T>.in_set(ViewSystems));
+
         self
     }
 }
+
+pub struct ViewPlugin;
+
+impl Plugin for ViewPlugin {
+    fn build(&self, app: &mut App) {
+        app.configure_sets(PreUpdate, ViewSystems.after(CheckSystems));
+    }
+}
+
+#[derive(SystemSet, Default, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+pub struct ViewSystems;
 
 /// Trait used to spawn a [`View`] [`Entity`] for an [`Instance`] of [`Kind`] `T`.
 pub trait BuildView<T: Kind = Self>: Kind {
