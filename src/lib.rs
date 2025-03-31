@@ -10,7 +10,9 @@ use bevy_utils::{tracing::debug, HashMap, HashSet};
 use moonshine_core::{check::CheckSystems, prelude::*};
 
 pub mod prelude {
-    pub use super::{BuildView, RegisterView, View, ViewCommands, Viewable, Viewables};
+    pub use super::{
+        BuildView, RegisterView, View, ViewCommands, ViewSystems, Viewable, Viewables,
+    };
 }
 
 /// Extension trait used to register views using an [`App`].
