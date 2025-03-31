@@ -278,7 +278,7 @@ fn despawn_view<T: Kind>(
                     entity.remove::<Viewable<T>>();
                 }
                 if let Ok(view_entity) = world.get_entity_mut(view.entity()) {
-                    view_entity.despawn_recursive();
+                    view_entity.try_despawn_recursive();
                 }
                 world
                     .resource_mut::<Viewables>()
