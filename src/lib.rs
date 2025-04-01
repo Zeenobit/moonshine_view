@@ -7,7 +7,7 @@ use bevy_ecs::prelude::*;
 use bevy_hierarchy::prelude::*;
 use bevy_utils::{tracing::debug, HashMap, HashSet};
 
-use moonshine_core::{check::CheckSystems, prelude::*};
+use moonshine_core::prelude::*;
 
 pub mod prelude {
     pub use super::{
@@ -65,7 +65,7 @@ pub struct ViewPlugin;
 
 impl Plugin for ViewPlugin {
     fn build(&self, app: &mut App) {
-        app.configure_sets(PreUpdate, ViewSystems.after(CheckSystems));
+        app.configure_sets(PreUpdate, ViewSystems);
     }
 }
 
