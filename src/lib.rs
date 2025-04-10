@@ -129,10 +129,6 @@ impl<T: Kind> ViewBundle<T> {
     }
 }
 
-impl<T: Kind> KindBundle for ViewBundle<T> {
-    type Kind = View<T>;
-}
-
 /// A [`Resource`] which contains a mapping of all viewable entities to their views.
 ///
 /// # Usage
