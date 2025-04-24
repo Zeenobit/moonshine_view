@@ -42,14 +42,10 @@ struct Square;
 impl BuildView<Shape> for Square {
     fn build(world: &World, object: Object<Shape>, mut view: ViewCommands<Shape>) {
         info!("{object:?} is observed!");
-        let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
-        view.insert((
-            transform,
-            Gizmo {
-                handle: world.resource::<ShapeAssets>().square.clone(),
-                ..default()
-            },
-        ));
+        view.with_child((Gizmo {
+            handle: world.resource::<ShapeAssets>().square.clone(),
+            ..default()
+        },));
     }
 }
 
@@ -61,14 +57,10 @@ struct Circle;
 impl BuildView<Shape> for Circle {
     fn build(world: &World, object: Object<Shape>, mut view: ViewCommands<Shape>) {
         info!("{object:?} is observed!");
-        let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
-        view.insert((
-            transform,
-            Gizmo {
-                handle: world.resource::<ShapeAssets>().circle.clone(),
-                ..default()
-            },
-        ));
+        view.with_child((Gizmo {
+            handle: world.resource::<ShapeAssets>().circle.clone(),
+            ..default()
+        },));
     }
 }
 
@@ -79,17 +71,16 @@ struct Special;
 
 impl BuildView<Shape> for Special {
     fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
-        view.with_children(|view| {
-            view.spawn(Gizmo {
-                handle: world.resource::<ShapeAssets>().special.clone(),
-                ..default()
-            });
+        view.with_child(Gizmo {
+            handle: world.resource::<ShapeAssets>().special.clone(),
+            ..default()
         });
     }
 }
 
 #[derive(Resource)]
 struct ShapeAssets {
+    base: Handle<GizmoAsset>,
     square: Handle<GizmoAsset>,
     circle: Handle<GizmoAsset>,
     special: Handle<GizmoAsset>,
@@ -99,11 +90,18 @@ fn load_assets(mut assets: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
     // When building views, you cannot mutate the world.
     // This is by design, as it is more efficient to preload the assets you need before building the views.
     let shape_assets = ShapeAssets {
+        base: assets.add(base_asset()),
         square: assets.add(square_asset()),
         circle: assets.add(circle_asset()),
         special: assets.add(special_asset()),
     };
     commands.insert_resource(shape_assets);
+}
+
+fn base_asset() -> GizmoAsset {
+    let mut asset = GizmoAsset::new();
+    asset.circle(Isometry3d::IDENTITY, 1., bevy::color::palettes::css::WHITE);
+    asset
 }
 
 fn square_asset() -> GizmoAsset {
@@ -162,8 +160,16 @@ impl Kind for Shape {
 }
 
 impl BuildView for Shape {
-    fn build(_world: &World, _object: Object<Self>, _view: ViewCommands<Self>) {
-        // TODO: Base view for all shapes
+    fn build(world: &World, object: Object<Self>, mut view: ViewCommands<Self>) {
+        info!("{object:?} is observed!");
+        let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
+        view.insert((
+            transform,
+            Gizmo {
+                handle: world.resource::<ShapeAssets>().base.clone(),
+                ..default()
+            },
+        ));
     }
 }
 

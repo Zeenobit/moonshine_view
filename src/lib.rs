@@ -1,5 +1,8 @@
 #![doc = include_str!("../README.md")]
 
+#[cfg(test)]
+mod tests;
+
 use std::any::TypeId;
 
 use bevy_app::prelude::*;
