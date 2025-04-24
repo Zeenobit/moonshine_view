@@ -4,8 +4,8 @@ use std::any::TypeId;
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_hierarchy::prelude::*;
-use bevy_utils::{tracing::debug, HashMap, HashSet};
+use bevy_log::prelude::*;
+use bevy_platform::collections::{HashMap, HashSet};
 
 use moonshine_core::prelude::*;
 
@@ -274,7 +274,7 @@ fn despawn_view<T: Kind>(
                     entity.remove::<Viewable<T>>();
                 }
                 if let Ok(view_entity) = world.get_entity_mut(view.entity()) {
-                    view_entity.try_despawn_recursive();
+                    view_entity.despawn();
                 }
                 world
                     .resource_mut::<Viewables>()
@@ -315,7 +315,7 @@ fn despawn_view<T: Kind>(
 pub fn rebuild<T: Kind>(viewable: InstanceRef<Viewable<T>>, commands: &mut Commands) {
     let entity = viewable.entity();
     let view = viewable.view();
-    commands.entity(view.entity()).despawn_recursive();
+    commands.entity(view.entity()).despawn();
     commands.queue(move |world: &mut World| {
         world.resource_mut::<Viewables>().remove(entity, view);
     });

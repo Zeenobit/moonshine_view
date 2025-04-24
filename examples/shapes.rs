@@ -1,14 +1,19 @@
 use std::path::Path;
 
 use bevy::prelude::*;
-use bevy_vector_shapes::prelude::*;
 use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
 
 fn main() {
     App::new()
-        .add_plugins((DefaultPlugins, ShapePlugin::default()))
+        .add_plugins(DefaultPlugins)
+        // Register types for serialization:
+        .register_type::<Position>()
+        .register_type::<Square>()
+        .register_type::<Circle>()
+        .register_type::<Special>()
         // Register Shapes as viewable:
+        .add_viewable::<Shape>()
         .add_view::<Shape, Square>()
         .add_view::<Shape, Circle>()
         .add_view::<Shape, Special>()
@@ -24,100 +29,107 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, (handle_mouse, handle_keyboard))
         // View Systems:
+        .add_systems(Startup, load_assets)
         .add_systems(PostUpdate, view_shape_position_changed)
         .run();
 }
 
-#[derive(Bundle)]
-struct SquareBundle {
-    square: Square,
-    position: Position,
-    save: Save,
-}
-
-impl SquareBundle {
-    fn new(position: Position) -> Self {
-        Self {
-            square: Square,
-            position,
-            save: Save,
-        }
-    }
-}
-
-#[derive(Bundle)]
-struct CircleBundle {
-    circle: Circle,
-    position: Position,
-    save: Save,
-}
-
-impl CircleBundle {
-    fn new(position: Position) -> Self {
-        Self {
-            circle: Circle,
-            position,
-            save: Save,
-        }
-    }
-}
-
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
+#[require(Position, Save)]
 struct Square;
 
 impl BuildView<Shape> for Square {
     fn build(world: &World, object: Object<Shape>, mut view: ViewCommands<Shape>) {
         info!("{object:?} is observed!");
-        let transform = world.get::<Position>(object.entity()).unwrap().into();
-        view.insert(ShapeBundle::rect(
-            &ShapeConfig {
-                transform,
-                color: bevy::color::palettes::css::ORANGE.into(),
-                ..ShapeConfig::default_2d()
+        let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
+        view.insert((
+            transform,
+            Gizmo {
+                handle: world.resource::<ShapeAssets>().square.clone(),
+                ..default()
             },
-            Vec2::ONE * 10.,
         ));
     }
 }
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
+#[require(Position, Save)]
 struct Circle;
 
 impl BuildView<Shape> for Circle {
     fn build(world: &World, object: Object<Shape>, mut view: ViewCommands<Shape>) {
         info!("{object:?} is observed!");
-        let transform = world.get::<Position>(object.entity()).unwrap().into();
-        view.insert(ShapeBundle::circle(
-            &ShapeConfig {
-                transform,
-                color: bevy::color::palettes::css::DARK_CYAN.into(),
-                ..ShapeConfig::default_2d()
+        let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
+        view.insert((
+            transform,
+            Gizmo {
+                handle: world.resource::<ShapeAssets>().circle.clone(),
+                ..default()
             },
-            5.,
         ));
     }
 }
 
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
+#[require(Position, Save)]
 struct Special;
 
 impl BuildView<Shape> for Special {
-    fn build(_world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
+    fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
         view.with_children(|view| {
-            view.spawn(ShapeBundle::circle(
-                &ShapeConfig {
-                    color: bevy::color::palettes::css::RED.into(),
-                    hollow: true,
-                    thickness: 2.,
-                    ..ShapeConfig::default_2d()
-                },
-                8.,
-            ));
+            view.spawn(Gizmo {
+                handle: world.resource::<ShapeAssets>().special.clone(),
+                ..default()
+            });
         });
     }
+}
+
+#[derive(Resource)]
+struct ShapeAssets {
+    square: Handle<GizmoAsset>,
+    circle: Handle<GizmoAsset>,
+    special: Handle<GizmoAsset>,
+}
+
+fn load_assets(mut assets: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
+    // When building views, you cannot mutate the world.
+    // This is by design, as it is more efficient to preload the assets you need before building the views.
+    let shape_assets = ShapeAssets {
+        square: assets.add(square_asset()),
+        circle: assets.add(circle_asset()),
+        special: assets.add(special_asset()),
+    };
+    commands.insert_resource(shape_assets);
+}
+
+fn square_asset() -> GizmoAsset {
+    let mut asset = GizmoAsset::new();
+    asset.rect(
+        Isometry3d::IDENTITY,
+        Vec2::ONE * 10.,
+        bevy::color::palettes::css::ORANGE,
+    );
+    asset
+}
+
+fn circle_asset() -> GizmoAsset {
+    let mut asset = GizmoAsset::new();
+    asset.circle(
+        Isometry3d::IDENTITY,
+        5.,
+        bevy::color::palettes::css::DARK_CYAN,
+    );
+    asset
+}
+
+fn special_asset() -> GizmoAsset {
+    let mut asset = GizmoAsset::new();
+    asset.circle(Isometry3d::IDENTITY, 8., bevy::color::palettes::css::RED);
+    asset
 }
 
 #[derive(Component, Default, Reflect)]
@@ -149,6 +161,12 @@ impl Kind for Shape {
     type Filter = (With<Position>, With<Save>);
 }
 
+impl BuildView for Shape {
+    fn build(_world: &World, _object: Object<Self>, _view: ViewCommands<Self>) {
+        // TODO: Base view for all shapes
+    }
+}
+
 fn setup(mut commands: Commands) {
     const HELP_TEXT: &str = "
     Click Left mouse button to spawn a Square\n
@@ -171,7 +189,7 @@ fn handle_mouse(
     if mouse.just_pressed(MouseButton::Left) {
         let position = Position::random_in_circle(Vec2::ZERO, 200.);
         info!("Spawned a Square at {}", position.0);
-        let mut shape = commands.spawn(SquareBundle::new(position));
+        let mut shape = commands.spawn((Square, position));
         if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
             shape.insert(Special);
         }
@@ -179,7 +197,7 @@ fn handle_mouse(
     if mouse.just_pressed(MouseButton::Right) {
         let position = Position::random_in_circle(Vec2::ZERO, 200.);
         info!("Spawned a Circle at {}", position.0);
-        let mut shape = commands.spawn(CircleBundle::new(position));
+        let mut shape = commands.spawn((Circle, position));
         if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
             shape.insert(Special);
         }
@@ -203,7 +221,7 @@ fn handle_keyboard(
     if keyboard.just_pressed(KeyCode::KeyR) {
         info!("Reset!");
         for shape in shapes.iter() {
-            commands.entity(shape.entity()).despawn_recursive();
+            commands.entity(shape.entity()).despawn();
         }
     }
     if keyboard.just_pressed(KeyCode::KeyM) {
@@ -234,7 +252,7 @@ struct SaveRequest;
 
 impl GetFilePath for SaveRequest {
     fn path(&self) -> &Path {
-        Path::new("shapes.ron")
+        Path::new(SAVE_FILE_PATH)
     }
 }
 
@@ -243,6 +261,8 @@ struct LoadRequest;
 
 impl GetFilePath for LoadRequest {
     fn path(&self) -> &Path {
-        Path::new("shapes.ron")
+        Path::new(SAVE_FILE_PATH)
     }
 }
+
+const SAVE_FILE_PATH: &str = "shapes.ron";
