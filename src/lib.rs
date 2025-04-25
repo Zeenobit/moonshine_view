@@ -7,6 +7,7 @@ use std::any::TypeId;
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
+use bevy_ecs::relationship::Relationship;
 use bevy_log::prelude::*;
 use bevy_platform::collections::{HashMap, HashSet};
 
@@ -32,7 +33,7 @@ impl RegisterView for App {
         self.add_systems(
             PreUpdate,
             build_view::<T, V>
-                .after(spawn_view::<T>)
+                .after(ViewBaseSystems)
                 .in_set(ViewSystems),
         );
         self
@@ -40,10 +41,6 @@ impl RegisterView for App {
 
     /// Adds a given [`Kind`] as viewable.
     fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
-        if !self.is_plugin_added::<ViewPlugin>() {
-            self.add_plugins(ViewPlugin);
-        }
-
         let mut viewables = self
             .world_mut()
             .get_resource_or_insert_with(Viewables::default);
@@ -55,6 +52,7 @@ impl RegisterView for App {
             PreUpdate,
             (spawn_view::<T>, build_view::<T, T>)
                 .chain()
+                .in_set(ViewBaseSystems)
                 .in_set(ViewSystems),
         );
 
@@ -64,16 +62,11 @@ impl RegisterView for App {
     }
 }
 
-pub struct ViewPlugin;
-
-impl Plugin for ViewPlugin {
-    fn build(&self, app: &mut App) {
-        app.configure_sets(PreUpdate, ViewSystems);
-    }
-}
-
-#[derive(SystemSet, Default, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+#[derive(SystemSet, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct ViewSystems;
+
+#[derive(SystemSet, Clone, Copy, Debug, Hash, PartialEq, Eq)]
+struct ViewBaseSystems;
 
 /// Trait used to spawn a [`View`] [`Entity`] for an [`Instance`] of [`Kind`] `T`.
 pub trait BuildView<T: Kind = Self>: Kind {
@@ -87,8 +80,25 @@ pub type ViewCommands<'a, T> = InstanceCommands<'a, View<T>>;
 
 /// [`Component`] of an [`Entity`] associated with a [`View`].
 #[derive(Component)]
+#[component(on_insert = <Self as Relationship>::on_insert)]
+#[component(on_replace = <Self as Relationship>::on_replace)]
 pub struct Viewable<T: Kind> {
     view: Instance<View<T>>,
+}
+
+impl<T: Kind> Relationship for Viewable<T> {
+    type RelationshipTarget = View<T>;
+
+    fn get(&self) -> Entity {
+        self.view.entity()
+    }
+
+    fn from(entity: Entity) -> Self {
+        Self {
+            // SAFE: In Bevy we trust!
+            view: unsafe { Instance::from_entity_unchecked(entity) },
+        }
+    }
 }
 
 impl<T: Kind> Viewable<T> {
@@ -104,6 +114,8 @@ impl<T: Kind> Viewable<T> {
 
 /// [`Component`] of an [`Entity`] associated with a [`Viewable`].
 #[derive(Component)]
+#[component(on_replace = <Self as RelationshipTarget>::on_replace)]
+#[component(on_despawn = <Self as RelationshipTarget>::on_despawn)]
 pub struct View<T: Kind> {
     viewable: Instance<T>,
 }
@@ -115,19 +127,24 @@ impl<T: Kind> View<T> {
     }
 }
 
-#[derive(Bundle)]
-struct ViewBundle<T: Kind> {
-    view: View<T>,
-    unload: Unload,
-}
+impl<T: Kind> RelationshipTarget for View<T> {
+    const LINKED_SPAWN: bool = false;
 
-impl<T: Kind> ViewBundle<T> {
-    pub fn new(viewable: impl Into<Instance<T>>) -> Self {
+    type Relationship = Viewable<T>;
+
+    type Collection = Instance<T>;
+
+    fn collection(&self) -> &Self::Collection {
+        &self.viewable
+    }
+
+    fn collection_mut_risky(&mut self) -> &mut Self::Collection {
+        &mut self.viewable
+    }
+
+    fn from_collection_risky(collection: Self::Collection) -> Self {
         Self {
-            view: View {
-                viewable: viewable.into(),
-            },
-            unload: Unload,
+            viewable: collection,
         }
     }
 }
@@ -215,7 +232,7 @@ impl Viewables {
 
 fn spawn_view<T: Kind>(objects: Objects<T, Without<Viewable<T>>>, mut commands: Commands) {
     for object in objects.iter() {
-        let view_entity = commands.spawn(ViewBundle::new(object)).id();
+        let view_entity = commands.spawn(Unload).id();
         // SAFE: `ViewBundle` will be inserted.
         let view: Instance<View<T>> = unsafe { Instance::from_entity_unchecked(view_entity) };
         let entity = object.entity();
@@ -251,13 +268,6 @@ fn build_view<T: Kind, S: BuildView<T>>(
         commands
             .entity(object.entity())
             .insert_if_new(Viewable::<S>::new(view));
-
-        commands
-            .entity(base_view.entity())
-            .insert_if_new(View::<S> {
-                // SAFE: `S::Filter` applied to query
-                viewable: unsafe { object.instance().cast_into_unchecked() },
-            });
 
         S::build(world, object, commands.instance(base_view));
     }

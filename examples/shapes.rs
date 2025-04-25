@@ -40,12 +40,11 @@ fn main() {
 struct Square;
 
 impl BuildView<Shape> for Square {
-    fn build(world: &World, object: Object<Shape>, mut view: ViewCommands<Shape>) {
-        info!("{object:?} is observed!");
-        view.with_child((Gizmo {
+    fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
+        view.with_child(Gizmo {
             handle: world.resource::<ShapeAssets>().square.clone(),
             ..default()
-        },));
+        });
     }
 }
 
@@ -55,12 +54,11 @@ impl BuildView<Shape> for Square {
 struct Circle;
 
 impl BuildView<Shape> for Circle {
-    fn build(world: &World, object: Object<Shape>, mut view: ViewCommands<Shape>) {
-        info!("{object:?} is observed!");
-        view.with_child((Gizmo {
+    fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
+        view.with_child(Gizmo {
             handle: world.resource::<ShapeAssets>().circle.clone(),
             ..default()
-        },));
+        });
     }
 }
 
@@ -163,7 +161,9 @@ impl BuildView for Shape {
     fn build(world: &World, object: Object<Self>, mut view: ViewCommands<Self>) {
         info!("{object:?} is observed!");
         let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
+        dbg!(view.id());
         view.insert((
+            GlobalTransform::default(),
             transform,
             Gizmo {
                 handle: world.resource::<ShapeAssets>().base.clone(),
