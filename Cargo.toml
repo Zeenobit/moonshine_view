@@ -1,6 +1,6 @@
 [package]
 name = "moonshine-view"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 license = "MIT"
 description = "Generic Model/View framework designed for Bevy"
@@ -16,7 +16,7 @@ bevy_ecs = "0.16.*"
 bevy_utils = "0.16.*"
 bevy_platform = "0.16.*"
 bevy_log = "0.16.*"
-moonshine-core = { version = "0.3.0", path = "../core" }
+moonshine-core = { version = "0.3.*", path = "../core" }
 
 [dev-dependencies]
 rand = "0.9.*"
