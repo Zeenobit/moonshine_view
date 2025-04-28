@@ -3,8 +3,6 @@
 #[cfg(test)]
 mod tests;
 
-use std::any::TypeId;
-
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_ecs::relationship::Relationship;
@@ -41,12 +39,7 @@ impl RegisterView for App {
 
     /// Adds a given [`Kind`] as viewable.
     fn add_viewable<T: BuildView>(&mut self) -> &mut Self {
-        let mut viewables = self
-            .world_mut()
-            .get_resource_or_insert_with(Viewables::default);
-
-        #[allow(deprecated)] // TODO: Remove
-        viewables.add_kind::<T>();
+        self.world_mut().init_resource::<Viewables>();
 
         self.add_systems(
             PreUpdate,
@@ -159,7 +152,6 @@ impl<T: Kind> RelationshipTarget for View<T> {
 #[derive(Resource, Default)]
 pub struct Viewables {
     entities: HashMap<Entity, HashSet<Entity>>,
-    kinds: HashMap<TypeId, HashSet<Entity>>,
     views: HashMap<Entity, Entity>,
 }
 
@@ -173,23 +165,8 @@ impl Viewables {
         self.entities.keys().copied()
     }
 
-    #[deprecated]
-    pub fn is_viewable_kind<T: Kind>(&self) -> bool {
-        self.kinds.contains_key(&TypeId::of::<T>())
-    }
-
     pub fn is_view(&self, entity: Entity) -> bool {
         self.views.contains_key(&entity)
-    }
-
-    #[deprecated]
-    pub fn is_view_of_kind<T: Kind>(&self, entity: Entity) -> bool {
-        let Some(viewable) = self.views.get(&entity) else {
-            return false;
-        };
-        self.kinds
-            .get(&std::any::TypeId::of::<T>())
-            .is_some_and(|entities| entities.contains(viewable))
     }
 
     /// Iterates over all views for a given [`Viewable`] [`Entity`].
@@ -200,20 +177,11 @@ impl Viewables {
             .flat_map(|views| views.iter().copied())
     }
 
-    #[deprecated]
-    fn add_kind<T: Kind>(&mut self) {
-        self.kinds.insert(TypeId::of::<T>(), HashSet::default());
-    }
-
     fn add<T: Kind>(&mut self, entity: Entity, view: Instance<View<T>>) {
         self.entities
             .entry(entity)
             .or_default()
             .insert(view.entity());
-        self.kinds
-            .get_mut(&TypeId::of::<T>())
-            .expect("kind must be registered as viewable")
-            .insert(entity);
         let previous = self.views.insert(view.entity(), entity);
         debug_assert!(previous.is_none());
     }
@@ -224,8 +192,6 @@ impl Viewables {
         if views.is_empty() {
             self.entities.remove(&entity);
         }
-        let kinds = self.kinds.get_mut(&TypeId::of::<T>()).unwrap();
-        kinds.remove(&view.entity());
         self.views.remove(&view.entity());
     }
 }
