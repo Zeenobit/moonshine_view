@@ -5,7 +5,6 @@ mod tests;
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
-use bevy_ecs::relationship::Relationship;
 use bevy_log::prelude::*;
 use bevy_platform::collections::{HashMap, HashSet};
 
@@ -73,25 +72,8 @@ pub type ViewCommands<'a, T> = InstanceCommands<'a, View<T>>;
 
 /// [`Component`] of an [`Entity`] associated with a [`View`].
 #[derive(Component)]
-#[component(on_insert = <Self as Relationship>::on_insert)]
-#[component(on_replace = <Self as Relationship>::on_replace)]
 pub struct Viewable<T: Kind> {
     view: Instance<View<T>>,
-}
-
-impl<T: Kind> Relationship for Viewable<T> {
-    type RelationshipTarget = View<T>;
-
-    fn get(&self) -> Entity {
-        self.view.entity()
-    }
-
-    fn from(entity: Entity) -> Self {
-        Self {
-            // SAFE: In Bevy we trust!
-            view: unsafe { Instance::from_entity_unchecked(entity) },
-        }
-    }
 }
 
 impl<T: Kind> Viewable<T> {
@@ -107,8 +89,6 @@ impl<T: Kind> Viewable<T> {
 
 /// [`Component`] of an [`Entity`] associated with a [`Viewable`].
 #[derive(Component)]
-#[component(on_replace = <Self as RelationshipTarget>::on_replace)]
-#[component(on_despawn = <Self as RelationshipTarget>::on_despawn)]
 pub struct View<T: Kind> {
     viewable: Instance<T>,
 }
@@ -117,28 +97,6 @@ impl<T: Kind> View<T> {
     /// Returns the associated viewable entity.
     pub fn viewable(&self) -> Instance<T> {
         self.viewable
-    }
-}
-
-impl<T: Kind> RelationshipTarget for View<T> {
-    const LINKED_SPAWN: bool = false;
-
-    type Relationship = Viewable<T>;
-
-    type Collection = Instance<T>;
-
-    fn collection(&self) -> &Self::Collection {
-        &self.viewable
-    }
-
-    fn collection_mut_risky(&mut self) -> &mut Self::Collection {
-        &mut self.viewable
-    }
-
-    fn from_collection_risky(collection: Self::Collection) -> Self {
-        Self {
-            viewable: collection,
-        }
     }
 }
 
@@ -234,6 +192,13 @@ fn build_view<T: Kind, S: BuildView<T>>(
         commands
             .entity(object.entity())
             .insert_if_new(Viewable::<S>::new(view));
+
+        commands
+            .entity(base_view.entity())
+            .insert_if_new(View::<S> {
+                // SAFE: `S::Filter` applied to query
+                viewable: unsafe { object.instance().cast_into_unchecked() },
+            });
 
         S::build(world, object, commands.instance(base_view));
     }

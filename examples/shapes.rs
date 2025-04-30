@@ -161,7 +161,6 @@ impl BuildView for Shape {
     fn build(world: &World, object: Object<Self>, mut view: ViewCommands<Self>) {
         info!("{object:?} is observed!");
         let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
-        dbg!(view.id());
         view.insert((
             GlobalTransform::default(),
             transform,
