@@ -44,7 +44,7 @@ impl BuildView for Bird {
 
 // Remember to register viewable types:
 let mut app = App::new();
-app.register_viewable::<Bird>();
+app.add_viewable::<Bird>();
 ```
 
 You may also define a [`Kind`] as viewable:
@@ -74,7 +74,7 @@ impl BuildView for Creature {
 
 // Remember to register viewable types:
 let mut app = App::new();
-app.register_viewable::<Creature>();
+app.add_viewable::<Creature>();
 ```
 
 This is useful when you want to define the same view for multiple kinds of entities.
