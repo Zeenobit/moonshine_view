@@ -10,10 +10,14 @@ use bevy_platform::collections::{HashMap, HashSet};
 
 use moonshine_core::prelude::*;
 
+pub use moonshine_core::object::Object;
+
 pub mod prelude {
     pub use super::{
         BuildView, RegisterView, View, ViewCommands, ViewSystems, Viewable, Viewables,
     };
+
+    pub use super::Object;
 }
 
 /// Extension trait used to register views using an [`App`].
