@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_ecs::system::RunSystemOnce;
-use moonshine_core::prelude::*;
+use moonshine_kind::prelude::*;
 
 use crate::prelude::*;
 

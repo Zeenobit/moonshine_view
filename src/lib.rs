@@ -1,7 +1,7 @@
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_ecs::relationship::Relationship;
-use moonshine_core::kind::prelude::*;
+use moonshine_kind::prelude::*;
 
 pub mod prelude {
     pub use super::{OnBuildView, RegisterViewable, View, ViewSystems, Viewable};
