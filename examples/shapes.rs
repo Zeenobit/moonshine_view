@@ -32,7 +32,7 @@ fn main() {
         .add_systems(Update, (handle_mouse, handle_keyboard))
         // View Systems:
         .add_systems(Startup, load_assets)
-        .add_systems(PostUpdate, view_shape_position_changed)
+        .add_systems(PostUpdate, handle_shape_position_changed)
         .run();
 }
 
@@ -120,8 +120,8 @@ struct ShapeAssets {
 }
 
 fn load_assets(mut assets: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
-    // When building views, you cannot mutate the world.
-    // This is by design, as it is more efficient to preload the assets you need before building the views.
+    // You could load these assets directly inside `OnBuildView` observers.
+    // However, it is often more efficient to load them just once at startup.
     let shape_assets = ShapeAssets {
         base: assets.add(base_asset()),
         square: assets.add(square_asset()),
@@ -280,7 +280,7 @@ fn randomize_positions(mut positions: Query<&mut Position>) {
     }
 }
 
-fn view_shape_position_changed(
+fn handle_shape_position_changed(
     shapes: Query<(&Viewable<Shape>, &Position), Changed<Position>>,
     mut transform: Query<&mut Transform>,
 ) {
