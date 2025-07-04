@@ -119,3 +119,8 @@ fn trigger_build_view<T: Kind>(
             .trigger(OnBuildView { view });
     }
 }
+
+#[deprecated]
+pub fn rebuild<T: Kind>(viewable: InstanceRef<Viewable<T>>, commands: &mut Commands) {
+    commands.entity(viewable.entity()).remove::<Viewable<T>>();
+}
