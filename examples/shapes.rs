@@ -13,10 +13,12 @@ fn main() {
         .register_type::<Circle>()
         .register_type::<Special>()
         // Register Shapes as viewable:
-        .add_viewable::<Shape>()
-        .add_view::<Shape, Square>()
-        .add_view::<Shape, Circle>()
-        .add_view::<Shape, Special>()
+        .register_viewable::<Shape>()
+        // Add observers to build views:
+        .add_observer(build_shape_view)
+        .add_observer(build_square_view)
+        .add_observer(build_circle_view)
+        .add_observer(build_special_view)
         // Add Save/Load Pipelines:
         .add_systems(
             PreUpdate,
@@ -39,13 +41,24 @@ fn main() {
 #[require(Position, Save)]
 struct Square;
 
-impl BuildView<Shape> for Square {
-    fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
-        view.with_child(Gizmo {
-            handle: world.resource::<ShapeAssets>().square.clone(),
-            ..default()
-        });
-    }
+fn build_square_view(
+    trigger: Trigger<OnBuildView<Shape>>,
+    query: Query<Instance<Square>>,
+    assets: Res<ShapeAssets>,
+    mut commands: Commands,
+) {
+    let Ok(instance) = query.get(trigger.target()) else {
+        // Target is not a Square
+        return;
+    };
+
+    info!("{instance} is observed!");
+
+    let view = trigger.view();
+    commands.instance(view).with_child(Gizmo {
+        handle: assets.square.clone(),
+        ..default()
+    });
 }
 
 #[derive(Component, Default, Reflect)]
@@ -53,13 +66,24 @@ impl BuildView<Shape> for Square {
 #[require(Position, Save)]
 struct Circle;
 
-impl BuildView<Shape> for Circle {
-    fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
-        view.with_child(Gizmo {
-            handle: world.resource::<ShapeAssets>().circle.clone(),
-            ..default()
-        });
-    }
+fn build_circle_view(
+    trigger: Trigger<OnBuildView<Shape>>,
+    query: Query<Instance<Circle>>,
+    assets: Res<ShapeAssets>,
+    mut commands: Commands,
+) {
+    let Ok(instance) = query.get(trigger.target()) else {
+        // Target is not a Circle
+        return;
+    };
+
+    info!("{instance} is observed!");
+
+    let view = trigger.view();
+    commands.instance(view).with_child(Gizmo {
+        handle: assets.circle.clone(),
+        ..default()
+    });
 }
 
 #[derive(Component, Default, Reflect)]
@@ -67,13 +91,24 @@ impl BuildView<Shape> for Circle {
 #[require(Position, Save)]
 struct Special;
 
-impl BuildView<Shape> for Special {
-    fn build(world: &World, _object: Object<Shape>, mut view: ViewCommands<Shape>) {
-        view.with_child(Gizmo {
-            handle: world.resource::<ShapeAssets>().special.clone(),
-            ..default()
-        });
-    }
+fn build_special_view(
+    trigger: Trigger<OnBuildView<Shape>>,
+    query: Query<Instance<Special>>,
+    assets: Res<ShapeAssets>,
+    mut commands: Commands,
+) {
+    let Ok(instance) = query.get(trigger.target()) else {
+        // Target is not a Special shape
+        return;
+    };
+
+    info!("{instance} is observed!");
+
+    let view = trigger.view();
+    commands.instance(view).with_child(Gizmo {
+        handle: assets.special.clone(),
+        ..default()
+    });
 }
 
 #[derive(Resource)]
@@ -128,7 +163,7 @@ fn special_asset() -> GizmoAsset {
     asset
 }
 
-#[derive(Component, Default, Reflect)]
+#[derive(Component, Default, Debug, Reflect)]
 #[reflect(Component)]
 struct Position(pub Vec2);
 
@@ -157,19 +192,23 @@ impl Kind for Shape {
     type Filter = (With<Position>, With<Save>);
 }
 
-impl BuildView for Shape {
-    fn build(world: &World, object: Object<Self>, mut view: ViewCommands<Self>) {
-        info!("{object:?} is observed!");
-        let transform: Transform = world.get::<Position>(object.entity()).unwrap().into();
-        view.insert((
-            GlobalTransform::default(),
-            transform,
-            Gizmo {
-                handle: world.resource::<ShapeAssets>().base.clone(),
-                ..default()
-            },
-        ));
-    }
+fn build_shape_view(
+    trigger: Trigger<OnBuildView<Shape>>,
+    query: Query<(Instance<Shape>, &Position)>,
+    assets: Res<ShapeAssets>,
+    mut commands: Commands,
+) {
+    let (instance, position) = query.get(trigger.target()).unwrap();
+    info!("{instance} is observed!");
+    let transform: Transform = position.into();
+    commands.instance(trigger.view()).insert((
+        GlobalTransform::default(),
+        transform,
+        Gizmo {
+            handle: assets.base.clone(),
+            ..default()
+        },
+    ));
 }
 
 fn setup(mut commands: Commands) {

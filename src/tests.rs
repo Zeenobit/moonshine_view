@@ -8,22 +8,14 @@ use crate::prelude::*;
 #[reflect(Component)]
 struct M;
 
-impl BuildView for M {
-    fn build(_world: &World, _object: Object<Self>, _view: ViewCommands<Self>) {}
-}
-
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 struct MX;
 
-impl BuildView<M> for MX {
-    fn build(_world: &World, _object: Object<M>, _view: ViewCommands<M>) {}
-}
-
 #[test]
 fn test_viewable_spawn() {
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins).add_viewable::<M>();
+    app.add_plugins(MinimalPlugins).register_viewable::<M>();
     app.world_mut().spawn(M);
 
     app.update();
@@ -38,7 +30,7 @@ fn test_viewable_spawn() {
 #[test]
 fn test_viewable_despawn() {
     let mut app = App::new();
-    app.add_plugins(MinimalPlugins).add_viewable::<M>();
+    app.add_plugins(MinimalPlugins).register_viewable::<M>();
 
     // Spawn Viewable
     let m = app.world_mut().spawn(M).id();
