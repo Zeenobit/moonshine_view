@@ -16,6 +16,11 @@ mod tests;
 pub trait RegisterViewable {
     /// Adds a given [`Kind`] as viewable.
     fn register_viewable<T: Kind>(&mut self) -> &mut Self;
+
+    #[deprecated(since = "0.1.10", note = "Use `register_viewable` instead")]
+    fn add_viewable<T: Kind>(&mut self) -> &mut Self {
+        self.register_viewable::<T>()
+    }
 }
 
 impl RegisterViewable for App {
