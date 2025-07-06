@@ -192,6 +192,12 @@ impl Kind for Shape {
     type Filter = (With<Position>, With<Save>);
 }
 
+impl ViewableKind for Shape {
+    fn view_bundle() -> impl Bundle {
+        (Unload, GlobalTransform::default(), Transform::default())
+    }
+}
+
 fn build_shape_view(
     trigger: Trigger<OnBuildView<Shape>>,
     query: Query<(Instance<Shape>, &Position)>,
@@ -202,7 +208,6 @@ fn build_shape_view(
     info!("{instance} is observed!");
     let transform: Transform = position.into();
     commands.instance(trigger.view()).insert((
-        GlobalTransform::default(),
         transform,
         Gizmo {
             handle: assets.base.clone(),

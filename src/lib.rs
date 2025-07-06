@@ -8,7 +8,7 @@ use moonshine_kind::prelude::*;
 use moonshine_save::load::Unload;
 
 pub mod prelude {
-    pub use super::{OnBuildView, RegisterViewable, View, ViewSystems, Viewable};
+    pub use super::{OnBuildView, RegisterViewable, View, ViewSystems, Viewable, ViewableKind};
 }
 
 #[cfg(test)]
@@ -16,17 +16,12 @@ mod tests;
 
 pub trait RegisterViewable {
     /// Adds a given [`Kind`] as viewable.
-    fn register_viewable<T: Kind>(&mut self) -> &mut Self;
-
-    #[deprecated(since = "0.1.10", note = "Use `register_viewable` instead")]
-    fn add_viewable<T: Kind>(&mut self) -> &mut Self {
-        self.register_viewable::<T>()
-    }
+    fn register_viewable<T: ViewableKind>(&mut self) -> &mut Self;
 }
 
 impl RegisterViewable for App {
     /// Adds a given [`Kind`] as viewable.
-    fn register_viewable<T: Kind>(&mut self) -> &mut Self {
+    fn register_viewable<T: ViewableKind>(&mut self) -> &mut Self {
         self.add_systems(PreUpdate, trigger_build_view::<T>.in_set(ViewSystems));
         self
     }
@@ -35,23 +30,36 @@ impl RegisterViewable for App {
 #[derive(SystemSet, Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct ViewSystems;
 
+/// A trait used to define a [`Kind`] as viewable.
+pub trait ViewableKind: Kind {
+    /// Returns the default view [`Bundle`] for this [`Kind`].
+    ///
+    /// # Usage
+    /// By default, this returns an [`Unload`] component to ensure all views are despawned when the game is loaded.
+    ///
+    /// The output bundle is inserted into the [`View`] entity when it is spawned before [`OnBuildView`] is triggered.
+    /// This is useful for inserting the initial required components of the view before [`OnBuildView`].
+    fn view_bundle() -> impl Bundle {
+        Unload
+    }
+}
+
 /// [`Component`] of an [`Entity`] associated with a [`Viewable`].
 #[derive(Component)]
-#[require(Unload)]
 #[component(on_insert = <Self as Relationship>::on_insert)]
 #[component(on_replace = <Self as Relationship>::on_replace)]
-pub struct View<T: Kind> {
+pub struct View<T: ViewableKind> {
     viewable: Instance<T>,
 }
 
-impl<T: Kind> View<T> {
+impl<T: ViewableKind> View<T> {
     /// Returns the associated viewable entity.
     pub fn viewable(&self) -> Instance<T> {
         self.viewable
     }
 }
 
-impl<T: Kind> Relationship for View<T> {
+impl<T: ViewableKind> Relationship for View<T> {
     type RelationshipTarget = Viewable<T>;
 
     fn get(&self) -> Entity {
@@ -68,18 +76,18 @@ impl<T: Kind> Relationship for View<T> {
 #[derive(Component, Debug)]
 #[component(on_replace = <Self as RelationshipTarget>::on_replace)]
 #[component(on_despawn = <Self as RelationshipTarget>::on_despawn)]
-pub struct Viewable<T: Kind> {
+pub struct Viewable<T: ViewableKind> {
     view: Instance<View<T>>,
 }
 
-impl<T: Kind> Viewable<T> {
+impl<T: ViewableKind> Viewable<T> {
     /// Returns the [`View`] [`Instance`] associated with this [`Viewable`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
     }
 }
 
-impl<T: Kind> RelationshipTarget for Viewable<T> {
+impl<T: ViewableKind> RelationshipTarget for Viewable<T> {
     const LINKED_SPAWN: bool = true;
 
     type Relationship = View<T>;
@@ -100,18 +108,18 @@ impl<T: Kind> RelationshipTarget for Viewable<T> {
 }
 
 #[derive(Event)]
-pub struct OnBuildView<T: Kind> {
+pub struct OnBuildView<T: ViewableKind> {
     view: Instance<View<T>>,
 }
 
-impl<T: Kind> OnBuildView<T> {
+impl<T: ViewableKind> OnBuildView<T> {
     /// Returns the [`View`] instance associated with this event.
     pub fn view(&self) -> Instance<View<T>> {
         self.view
     }
 }
 
-fn trigger_build_view<T: Kind>(
+fn trigger_build_view<T: ViewableKind>(
     query: Query<Instance<T>, Without<Viewable<T>>>,
     mut commands: Commands,
 ) {
@@ -120,14 +128,10 @@ fn trigger_build_view<T: Kind>(
             .spawn_instance(View {
                 viewable: new_viewable,
             })
+            .insert(T::view_bundle())
             .instance();
         commands
             .entity(new_viewable.entity())
             .trigger(OnBuildView { view });
     }
-}
-
-#[deprecated]
-pub fn rebuild<T: Kind>(viewable: InstanceRef<Viewable<T>>, commands: &mut Commands) {
-    commands.entity(viewable.entity()).remove::<Viewable<T>>();
 }

@@ -8,6 +8,8 @@ use crate::prelude::*;
 #[reflect(Component)]
 struct M;
 
+impl ViewableKind for M {}
+
 #[derive(Component, Default, Reflect)]
 #[reflect(Component)]
 struct MX;
