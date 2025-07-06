@@ -8,7 +8,7 @@ use moonshine_kind::prelude::*;
 use moonshine_save::load::Unload;
 
 pub mod prelude {
-    pub use super::{OnBuildView, RegisterViewable, View, ViewSystems, Viewable, ViewableKind};
+    pub use super::{OnBuildView, RegisterViewable, View, Viewable, ViewableKind};
 }
 
 #[cfg(test)]
@@ -22,13 +22,10 @@ pub trait RegisterViewable {
 impl RegisterViewable for App {
     /// Adds a given [`Kind`] as viewable.
     fn register_viewable<T: ViewableKind>(&mut self) -> &mut Self {
-        self.add_systems(PreUpdate, trigger_build_view::<T>.in_set(ViewSystems));
+        self.add_systems(PreUpdate, trigger_build_view::<T>);
         self
     }
 }
-
-#[derive(SystemSet, Clone, Copy, Debug, Hash, PartialEq, Eq)]
-pub struct ViewSystems;
 
 /// A trait used to define a [`Kind`] as viewable.
 pub trait ViewableKind: Kind {
