@@ -5,6 +5,7 @@ use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_ecs::relationship::Relationship;
 use moonshine_kind::prelude::*;
+use moonshine_save::load::Unload;
 
 pub mod prelude {
     pub use super::{OnBuildView, RegisterViewable, View, ViewSystems, Viewable};
@@ -36,6 +37,7 @@ pub struct ViewSystems;
 
 /// [`Component`] of an [`Entity`] associated with a [`Viewable`].
 #[derive(Component)]
+#[require(Unload)]
 #[component(on_insert = <Self as Relationship>::on_insert)]
 #[component(on_replace = <Self as Relationship>::on_replace)]
 pub struct View<T: Kind> {
