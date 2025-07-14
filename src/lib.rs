@@ -7,6 +7,7 @@ use bevy_ecs::relationship::Relationship;
 use moonshine_kind::prelude::*;
 use moonshine_save::load::Unload;
 
+/// Common elements for the view system.
 pub mod prelude {
     pub use super::{OnBuildView, RegisterViewable, View, Viewable, ViewableKind};
 }
@@ -14,13 +15,13 @@ pub mod prelude {
 #[cfg(test)]
 mod tests;
 
+/// Trait used to register a [`ViewableKind`] with an [`App`].
 pub trait RegisterViewable {
     /// Adds a given [`Kind`] as viewable.
     fn register_viewable<T: ViewableKind>(&mut self) -> &mut Self;
 }
 
 impl RegisterViewable for App {
-    /// Adds a given [`Kind`] as viewable.
     fn register_viewable<T: ViewableKind>(&mut self) -> &mut Self {
         self.add_systems(PreUpdate, trigger_build_view::<T>);
         self
@@ -41,7 +42,9 @@ pub trait ViewableKind: Kind {
     }
 }
 
-/// [`Component`] of an [`Entity`] associated with a [`Viewable`].
+/// A [`Component`] which represents a view of an [`Entity`] of the given [`ViewableKind`].
+///
+/// A "view entity" is analogous to the View in the Model-View-Controller (MVC) pattern.
 #[derive(Component)]
 #[component(on_insert = <Self as Relationship>::on_insert)]
 #[component(on_replace = <Self as Relationship>::on_replace)]
@@ -70,6 +73,9 @@ impl<T: ViewableKind> Relationship for View<T> {
     }
 }
 
+/// A [`Component`] which represents an [`Entity`] associated with a [`View`].
+///
+/// A "viewable entity" is analogous to the Model in the Model-View-Controller (MVC) pattern.
 #[derive(Component, Debug)]
 #[component(on_replace = <Self as RelationshipTarget>::on_replace)]
 #[component(on_despawn = <Self as RelationshipTarget>::on_despawn)]
@@ -104,6 +110,9 @@ impl<T: ViewableKind> RelationshipTarget for Viewable<T> {
     }
 }
 
+/// An [`Event`] triggered when a new [`View`] is spawned for a [`Viewable`].
+///
+/// This event targets the [`Viewable`] [`Entity`] and provides access to the new [`View`].
 #[derive(Event)]
 pub struct OnBuildView<T: ViewableKind> {
     view: Instance<View<T>>,
