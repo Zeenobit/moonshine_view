@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use bevy::prelude::*;
 use moonshine_core::prelude::*;
 use moonshine_view::prelude::*;
@@ -19,14 +17,9 @@ fn main() {
         .add_observer(build_square_view)
         .add_observer(build_circle_view)
         .add_observer(build_special_view)
-        // Add Save/Load Pipelines:
-        .add_systems(
-            PreUpdate,
-            (
-                save_default().into(file_from_resource::<SaveRequest>()),
-                load(file_from_resource::<LoadRequest>()),
-            ),
-        )
+        // Add Save/Load Observers:
+        .add_observer(save_on_default_event)
+        .add_observer(load_on_default_event)
         // Gameplay Systems:
         .add_systems(Startup, setup)
         .add_systems(Update, (handle_mouse, handle_keyboard))
@@ -261,11 +254,11 @@ fn handle_keyboard(
 ) {
     if keyboard.just_pressed(KeyCode::KeyS) {
         info!("Save!");
-        commands.insert_resource(SaveRequest);
+        commands.trigger_save(SaveWorld::default_into_file(SAVE_FILE_PATH));
     }
     if keyboard.just_pressed(KeyCode::KeyL) {
         info!("Load!");
-        commands.insert_resource(LoadRequest);
+        commands.trigger_load(LoadWorld::default_from_file(SAVE_FILE_PATH));
     }
     if keyboard.just_pressed(KeyCode::KeyR) {
         info!("Reset!");
@@ -293,24 +286,6 @@ fn handle_shape_position_changed(
         let view = viewable.view();
         let mut transform = transform.get_mut(view.entity()).unwrap();
         *transform = position.into();
-    }
-}
-
-#[derive(Resource)]
-struct SaveRequest;
-
-impl GetFilePath for SaveRequest {
-    fn path(&self) -> &Path {
-        Path::new(SAVE_FILE_PATH)
-    }
-}
-
-#[derive(Resource)]
-struct LoadRequest;
-
-impl GetFilePath for LoadRequest {
-    fn path(&self) -> &Path {
-        Path::new(SAVE_FILE_PATH)
     }
 }
 
