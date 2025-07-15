@@ -22,7 +22,7 @@ This crate aims to reduce some of this complexity by providing a more generic an
 
 By definition, a [`Component`] is **Viewable** if a view can be built for it using [`BuildView`].
 
-An [`Entity`] is **Viewable** if it has at least one component which implements [`BuildView`].
+An [`Entity`] is **Viewable** if it matches a registered [`ViewableKind`].
 
 ```rust
 use bevy::prelude::*;
@@ -32,137 +32,22 @@ use moonshine_view::prelude::*;
 #[derive(Component)]
 struct Bird;
 
-impl BuildView for Bird {
-    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
-        let asset_server = world.resource::<AssetServer>();
-        // ...
-        for child in object.children() {
-            // ...
-        }
-    }
+impl ViewableKind for Bird {}
+
+fn build_bird_view(trigger: Trigger<OnBuildView<Bird>>, mut commands: Commands) {
+    let viewable = trigger.target();
+    let view = trigger.view();
+    commands.entity(*view).insert(BirdView);
 }
 
-// Remember to register viewable types:
+#[derive(Component)]
+struct BirdView;
+
+// Remember to register viewable kinds:
 let mut app = App::new();
-app.add_viewable::<Bird>();
+app.register_viewable::<Bird>();
+app.world_mut().spawn(Bird);
 ```
-
-You may also define a [`Kind`] as viewable:
-
-```rust
-use bevy::prelude::*;
-use moonshine_core::prelude::*;
-use moonshine_view::prelude::*;
-
-#[derive(Component)]
-struct Bird;
-
-#[derive(Component)]
-struct Monkey;
-
-struct Creature;
-
-impl Kind for Creature {
-    type Filter = Or<(With<Bird>, With<Monkey>)>;
-}
-
-impl BuildView for Creature {
-    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
-        // All creatures look the same!
-    }
-}
-
-// Remember to register viewable types:
-let mut app = App::new();
-app.add_viewable::<Creature>();
-```
-
-This is useful when you want to define the same view for multiple kinds of entities.
-
-In the example above, `Creature::build` is called for both Monkies and Birds.
-
-Views may be defined polymorphically:
-
-```rust
-use bevy::prelude::*;
-use moonshine_core::prelude::*;
-use moonshine_view::prelude::*;
-
-#[derive(Component)]
-struct Bird;
-
-#[derive(Component)]
-struct Monkey;
-
-struct Creature;
-
-impl Kind for Creature {
-    type Filter = Or<(With<Bird>, With<Monkey>)>;
-}
-
-impl BuildView<Creature> for Bird {
-    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
-        // Birds look different, but they're still creatures!
-    }
-}
-
-impl BuildView<Creature> for Monkey {
-    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
-        // Monkeys look different, but they're still creatures!
-    }
-}
-
-// Polymorphic views are registered slightly differently:
-let mut app = App::new();
-app.add_view::<Creature, Bird>()
-    .add_view::<Creature, Monkey>();
-```
-
-This is useful when you want to build a different version of the same view for multiple kinds of entities.
-
-In the example above, `Bird::build` is called for Birds, while `Monkey::build` is called for Monkies.
-
-Multiple views may be associated with the same viewable kind:
-
-```rust
-use bevy::prelude::*;
-use moonshine_core::prelude::*;
-use moonshine_view::prelude::*;
-
-#[derive(Component)]
-struct Bird;
-
-#[derive(Component)]
-struct Monkey;
-
-struct Creature;
-
-impl Kind for Creature {
-    type Filter = Or<(With<Bird>, With<Monkey>)>;
-}
-
-impl BuildView for Creature {
-    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
-        // All creatures have the same body!
-    }
-}
-
-impl BuildView<Creature> for Bird {
-    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
-        // Birds get wings!
-    }
-}
-
-impl BuildView<Creature> for Monkey {
-    fn build(world: &World, object: Object<Creature>, view: ViewCommands<Creature>) {
-        // Monkeys get tails!
-    }
-}
-```
-
-This is useful when you share some aspects of a view between multiple kinds of entities.
-
-In the example above, `Creature::build` is called for both Monkies and Birds, while `Bird::build` is *also* called for Birds.
 
 > [!WARNING]
 > Order of operations is undefined when multiple views are built for the same entity kind.</br>
@@ -194,11 +79,7 @@ use moonshine_view::prelude::*;
 #[derive(Component)]
 struct Bird;
 
-impl BuildView for Bird {
-    fn build(world: &World, object: Object<Self>, view: ViewCommands<Self>) {
-        // ...
-    }
-}
+impl ViewableKind for Bird {}
 
 // Update view from viewable, if needed (preferred)
 fn view_bird_changed(query: Query<(&Bird, &Viewable<Bird>), Changed<Bird>>) {
@@ -223,25 +104,6 @@ The root view entity is automatically marked with [`Unload`].
 
 This means the entire view entity hierarchy is despawned whenever a new game state is loaded.
 
-### Untyped Viewables
-
-Because the view system uses [`Kind`] for type safety, there is no access to views of a given viewable entity via a component.
-
-Instead, you may query all views associated with an entity by using the `Viewables` resource:
-
-```rust
-use bevy::prelude::*;
-use moonshine_view::prelude::*;
-
-fn update_views_generic(viewables: Res<Viewables>) {
-    for viewable_entity in viewables.iter() {
-        for view_entity in viewables.views(viewable_entity) {
-            // ...
-        }
-    }
-}
-```
-
 ## Examples
 
 See [shapes.rs](examples/shapes.rs) for a complete usage example.
@@ -250,7 +112,7 @@ See [shapes.rs](examples/shapes.rs) for a complete usage example.
 [`Entity`]:https://docs.rs/bevy/latest/bevy/ecs/entity/struct.Entity.html
 [`Kind`]:https://docs.rs/moonshine-kind/latest/moonshine_kind/trait.Kind.html
 [`Unload`]:https://docs.rs/moonshine-save/latest/moonshine_save/load/struct.Unload.html
-[`BuildView`]:https://docs.rs/moonshine-view/latest/moonshine_view/trait.Observe.html
+[`ViewableKind`]:https://docs.rs/moonshine-view/latest/moonshine_view/trait.ViewableKind.html
 [`Viewable<T>`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.Viewable.html
 [`View<T>`]:https://docs.rs/moonshine-view/latest/moonshine_view/struct.View.html
 [`RegisterView`]:https://docs.rs/moonshine-view/latest/moonshine_view/trait.RegisterView.html
