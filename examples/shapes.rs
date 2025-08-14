@@ -35,19 +35,19 @@ fn main() {
 struct Square;
 
 fn build_square_view(
-    trigger: Trigger<OnBuildView<Shape>>,
-    query: Query<Instance<Square>>,
+    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    query: Query<(Instance<Square>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok(instance) = query.get(trigger.target()) else {
+    let Ok((instance, viewable)) = query.get(trigger.target()) else {
         // Target is not a Square
         return;
     };
 
     info!("{instance} is observed!");
 
-    let view = trigger.view();
+    let view = viewable.view();
     commands.instance(view).with_child(Gizmo {
         handle: assets.square.clone(),
         ..default()
@@ -60,20 +60,19 @@ fn build_square_view(
 struct Circle;
 
 fn build_circle_view(
-    trigger: Trigger<OnBuildView<Shape>>,
-    query: Query<Instance<Circle>>,
+    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    query: Query<(Instance<Circle>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok(instance) = query.get(trigger.target()) else {
+    let Ok((instance, viewable)) = query.get(trigger.target()) else {
         // Target is not a Circle
         return;
     };
 
     info!("{instance} is observed!");
 
-    let view = trigger.view();
-    commands.instance(view).with_child(Gizmo {
+    commands.instance(viewable.view()).with_child(Gizmo {
         handle: assets.circle.clone(),
         ..default()
     });
@@ -85,20 +84,19 @@ fn build_circle_view(
 struct Special;
 
 fn build_special_view(
-    trigger: Trigger<OnBuildView<Shape>>,
-    query: Query<Instance<Special>>,
+    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    query: Query<(Instance<Special>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok(instance) = query.get(trigger.target()) else {
+    let Ok((instance, viewable)) = query.get(trigger.target()) else {
         // Target is not a Special shape
         return;
     };
 
     info!("{instance} is observed!");
 
-    let view = trigger.view();
-    commands.instance(view).with_child(Gizmo {
+    commands.instance(viewable.view()).with_child(Gizmo {
         handle: assets.special.clone(),
         ..default()
     });
@@ -192,15 +190,15 @@ impl ViewableKind for Shape {
 }
 
 fn build_shape_view(
-    trigger: Trigger<OnBuildView<Shape>>,
-    query: Query<(Instance<Shape>, &Position)>,
+    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    query: Query<(Instance<Shape>, &Position, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let (instance, position) = query.get(trigger.target()).unwrap();
+    let (instance, position, viewable) = query.get(trigger.target()).unwrap();
     info!("{instance} is observed!");
     let transform: Transform = position.into();
-    commands.instance(trigger.view()).insert((
+    commands.instance(viewable.view()).insert((
         transform,
         Gizmo {
             handle: assets.base.clone(),

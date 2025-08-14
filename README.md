@@ -34,9 +34,13 @@ struct Bird;
 
 impl ViewableKind for Bird {}
 
-fn build_bird_view(trigger: Trigger<OnBuildView<Bird>>, mut commands: Commands) {
-    let viewable = trigger.target();
-    let view = trigger.view();
+fn build_bird_view(
+    trigger: Trigger<OnAdd, Viewable<Bird>>,
+    query: Query<&Viewable<Bird>>,
+    mut commands: Commands
+){
+    let viewable = query.get(trigger.target()).unwrap();
+    let view = viewable.view();
     commands.entity(*view).insert(BirdView);
 }
 

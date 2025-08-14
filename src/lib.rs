@@ -1,5 +1,6 @@
 #![doc = include_str!("../README.md")]
 #![warn(missing_docs)]
+#![allow(deprecated)] // TODO: Remove deprecated code
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
@@ -9,7 +10,10 @@ use moonshine_save::load::Unload;
 
 /// Common elements for the view system.
 pub mod prelude {
-    pub use super::{OnBuildView, RegisterViewable, View, Viewable, ViewableKind};
+    pub use super::{RegisterViewable, View, Viewable, ViewableKind};
+
+    #[allow(deprecated)]
+    pub use super::OnBuildView;
 }
 
 #[cfg(test)]
@@ -113,6 +117,10 @@ impl<T: ViewableKind> RelationshipTarget for Viewable<T> {
 /// An [`Event`] triggered when a new [`View`] is spawned for a [`Viewable`].
 ///
 /// This event targets the [`Viewable`] [`Entity`] and provides access to the new [`View`].
+#[deprecated(
+    since = "0.2.0",
+    note = "use Trigger<OnAdd, Viewable<T>> or Trigger<OnAdd, View<T>> instead"
+)]
 #[derive(Event)]
 pub struct OnBuildView<T: ViewableKind> {
     view: Instance<View<T>>,
@@ -129,15 +137,13 @@ fn trigger_build_view<T: ViewableKind>(
     query: Query<Instance<T>, Without<Viewable<T>>>,
     mut commands: Commands,
 ) {
-    for new_viewable in query.iter() {
-        let view = commands
-            .spawn_instance(View {
-                viewable: new_viewable,
-            })
-            .insert(T::view_bundle())
-            .instance();
+    for viewable in query.iter() {
+        let entity = commands.spawn((T::view_bundle(), View { viewable })).id();
+
+        // TODO: Remove deprecated code
+        let view = unsafe { Instance::from_entity_unchecked(entity) };
         commands
-            .entity(new_viewable.entity())
-            .trigger(OnBuildView { view });
+            .entity(viewable.entity())
+            .trigger(OnBuildView::<T> { view });
     }
 }
