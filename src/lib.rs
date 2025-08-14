@@ -11,9 +11,6 @@ use moonshine_save::load::Unload;
 /// Common elements for the view system.
 pub mod prelude {
     pub use super::{RegisterViewable, View, Viewable, ViewableKind};
-
-    #[allow(deprecated)]
-    pub use super::OnBuildView;
 }
 
 #[cfg(test)]
@@ -114,36 +111,11 @@ impl<T: ViewableKind> RelationshipTarget for Viewable<T> {
     }
 }
 
-/// An [`Event`] triggered when a new [`View`] is spawned for a [`Viewable`].
-///
-/// This event targets the [`Viewable`] [`Entity`] and provides access to the new [`View`].
-#[deprecated(
-    since = "0.2.0",
-    note = "use Trigger<OnAdd, Viewable<T>> or Trigger<OnAdd, View<T>> instead"
-)]
-#[derive(Event)]
-pub struct OnBuildView<T: ViewableKind> {
-    view: Instance<View<T>>,
-}
-
-impl<T: ViewableKind> OnBuildView<T> {
-    /// Returns the [`View`] instance associated with this event.
-    pub fn view(&self) -> Instance<View<T>> {
-        self.view
-    }
-}
-
 fn trigger_build_view<T: ViewableKind>(
     query: Query<Instance<T>, Without<Viewable<T>>>,
     mut commands: Commands,
 ) {
     for viewable in query.iter() {
-        let entity = commands.spawn((T::view_bundle(), View { viewable })).id();
-
-        // TODO: Remove deprecated code
-        let view = unsafe { Instance::from_entity_unchecked(entity) };
-        commands
-            .entity(viewable.entity())
-            .trigger(OnBuildView::<T> { view });
+        commands.spawn((T::view_bundle(), View { viewable }));
     }
 }
