@@ -10,10 +10,6 @@ struct M;
 
 impl ViewableKind for M {}
 
-#[derive(Component, Default, Reflect)]
-#[reflect(Component)]
-struct MX;
-
 #[test]
 fn test_viewable_spawn() {
     let mut app = App::new();
