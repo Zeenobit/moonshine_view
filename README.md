@@ -20,9 +20,9 @@ This crate aims to reduce some of this complexity by providing a more generic an
 
 ### Viewables
 
-By definition, a [`Component`] is **Viewable** if a view can be built for it using [`BuildView`].
+By definition, an [`Entity`] is **Viewable** if it matches a registered [`ViewableKind`].
 
-An [`Entity`] is **Viewable** if it matches a registered [`ViewableKind`].
+This means every new instance of such an entity will get a [`Viewable<T>`] for every matching [`ViewableKind`]:
 
 ```rust
 use bevy::prelude::*;
@@ -54,7 +54,7 @@ app.world_mut().spawn(Bird);
 ```
 
 > [!WARNING]
-> Order of operations is undefined when multiple views are built for the same entity kind.</br>
+> Order of operations is undefined when multiple views are built for the same entity kind.<br>
 > Prefer to add components/children when building views to avoid ordering issues.
 
 ### Viewable ⇄ View

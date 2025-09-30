@@ -36,8 +36,8 @@ pub trait ViewableKind: Kind {
     /// # Usage
     /// By default, this returns an [`Unload`] component to ensure all views are despawned when the game is loaded.
     ///
-    /// The output bundle is inserted into the [`View`] entity when it is spawned before [`OnBuildView`] is triggered.
-    /// This is useful for inserting the initial required components of the view before [`OnBuildView`].
+    /// The output bundle is inserted into the [`View`] entity when it is spawned before [`Viewable<T>`] is inserted.
+    /// This is useful for initializing the view entity before anything else can react to it.
     fn view_bundle() -> impl Bundle {
         Unload
     }

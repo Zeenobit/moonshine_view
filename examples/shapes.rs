@@ -111,7 +111,7 @@ struct ShapeAssets {
 }
 
 fn load_assets(mut assets: ResMut<Assets<GizmoAsset>>, mut commands: Commands) {
-    // You could load these assets directly inside `OnBuildView` observers.
+    // You could load these assets directly when building views.
     // However, it is often more efficient to load them just once at startup.
     let shape_assets = ShapeAssets {
         base: assets.add(base_asset()),
