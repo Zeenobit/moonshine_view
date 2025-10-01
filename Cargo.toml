@@ -17,9 +17,9 @@ bevy_utils = "0.17"
 bevy_platform = "0.17"
 bevy_log = "0.17"
 moonshine-kind = { version = "0.4" }
-moonshine-save = { version = "0.5" }
+moonshine-save = { version = "0.6" }
 
 [dev-dependencies]
 rand = "0.9"
 bevy = "0.17"
-moonshine-core = "0.4"
+moonshine-core = "0.5"
