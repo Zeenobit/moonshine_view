@@ -53,7 +53,7 @@ app.register_viewable::<Bird>();
 app.world_mut().spawn(Bird);
 ```
 
-> [!WARNING]
+> **⚠️ Warning**
 > Order of operations is undefined when multiple views are built for the same entity kind.<br>
 > Prefer to add components/children when building views to avoid ordering issues.
 

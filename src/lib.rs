@@ -72,6 +72,12 @@ impl<T: ViewableKind> Relationship for View<T> {
             viewable: unsafe { Instance::from_entity_unchecked(entity) },
         }
     }
+
+    fn set_risky(&mut self, entity: Entity) {
+        unsafe {
+            *self.viewable.as_entity_mut() = entity;
+        }
+    }
 }
 
 /// A [`Component`] which represents an [`Entity`] associated with a [`View`].

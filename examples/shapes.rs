@@ -35,12 +35,12 @@ fn main() {
 struct Square;
 
 fn build_square_view(
-    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    event: On<Add, Viewable<Shape>>,
     query: Query<(Instance<Square>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok((instance, viewable)) = query.get(trigger.target()) else {
+    let Ok((instance, viewable)) = query.get(event.entity) else {
         // Target is not a Square
         return;
     };
@@ -60,12 +60,12 @@ fn build_square_view(
 struct Circle;
 
 fn build_circle_view(
-    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    event: On<Add, Viewable<Shape>>,
     query: Query<(Instance<Circle>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok((instance, viewable)) = query.get(trigger.target()) else {
+    let Ok((instance, viewable)) = query.get(event.entity) else {
         // Target is not a Circle
         return;
     };
@@ -84,12 +84,12 @@ fn build_circle_view(
 struct Special;
 
 fn build_special_view(
-    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    event: On<Add, Viewable<Shape>>,
     query: Query<(Instance<Special>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok((instance, viewable)) = query.get(trigger.target()) else {
+    let Ok((instance, viewable)) = query.get(event.entity) else {
         // Target is not a Special shape
         return;
     };
@@ -190,12 +190,12 @@ impl ViewableKind for Shape {
 }
 
 fn build_shape_view(
-    trigger: Trigger<OnAdd, Viewable<Shape>>,
+    event: On<Add, Viewable<Shape>>,
     query: Query<(Instance<Shape>, &Position, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let (instance, position, viewable) = query.get(trigger.target()).unwrap();
+    let (instance, position, viewable) = query.get(event.entity).unwrap();
     info!("{instance} is observed!");
     let transform: Transform = position.into();
     commands.instance(viewable.view()).insert((
