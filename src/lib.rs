@@ -91,6 +91,17 @@ pub struct Viewable<T: ViewableKind> {
 }
 
 impl<T: ViewableKind> Viewable<T> {
+    /// Spawns a [`View<T>`] for a given viewable instance and returns it.
+    ///
+    /// This function is useful for spawning views manually when you to modify the view before the observers start reacting.
+    pub fn spawn_view<'a>(
+        target: Instance<T>,
+        commands: &'a mut Commands,
+    ) -> InstanceCommands<'a, View<T>> {
+        let view_entity = commands.spawn((T::view_bundle(), View { viewable: target }));
+        unsafe { InstanceCommands::from_entity_unchecked(view_entity) }
+    }
+
     /// Returns the [`View`] [`Instance`] associated with this [`Viewable`].
     pub fn view(&self) -> Instance<View<T>> {
         self.view
@@ -122,6 +133,6 @@ fn trigger_build_view<T: ViewableKind>(
     mut commands: Commands,
 ) {
     for viewable in query.iter() {
-        commands.spawn((T::view_bundle(), View { viewable }));
+        Viewable::spawn_view(viewable, &mut commands);
     }
 }
