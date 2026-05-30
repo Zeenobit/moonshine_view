@@ -13,6 +13,10 @@ pub mod prelude {
     pub use super::{RegisterViewable, View, Viewable, ViewableKind};
 }
 
+/// Collection of utilities to extend the Moonshine Model/View framework.
+#[cfg(feature = "ext")]
+pub mod ext;
+
 #[cfg(test)]
 mod tests;
 

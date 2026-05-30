@@ -16,8 +16,14 @@ bevy_ecs = "0.18"
 bevy_utils = "0.18"
 bevy_platform = "0.18"
 bevy_log = "0.18"
+bevy_transform = { version = "0.18", optional = true }
 moonshine-kind = { version = "0.4" }
 moonshine-save = { version = "0.6" }
+moonshine-object = { version = "0.3", optional = true }
+
+[features]
+default = []
+ext = ["bevy_transform", "moonshine-object"]
 
 [dev-dependencies]
 rand = "0.9"
