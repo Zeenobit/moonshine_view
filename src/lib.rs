@@ -52,7 +52,7 @@ pub trait ViewableKind: Kind {
 /// A "view entity" is analogous to the View in the Model-View-Controller (MVC) pattern.
 #[derive(Component)]
 #[component(on_insert = <Self as Relationship>::on_insert)]
-#[component(on_replace = <Self as Relationship>::on_replace)]
+#[component(on_discard = <Self as Relationship>::on_discard)]
 pub struct View<T: ViewableKind> {
     viewable: Instance<T>,
 }
@@ -88,7 +88,7 @@ impl<T: ViewableKind> Relationship for View<T> {
 ///
 /// A "viewable entity" is analogous to the Model in the Model-View-Controller (MVC) pattern.
 #[derive(Component, Debug)]
-#[component(on_replace = <Self as RelationshipTarget>::on_replace)]
+#[component(on_discard = <Self as RelationshipTarget>::on_discard)]
 #[component(on_despawn = <Self as RelationshipTarget>::on_despawn)]
 pub struct Viewable<T: ViewableKind> {
     view: Instance<View<T>>,
