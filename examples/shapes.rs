@@ -35,7 +35,7 @@ fn main() {
 struct Square;
 
 fn build_square_view(
-    event: On<Add, Viewable<Shape>>,
+    event: On<Add<Viewable<Shape>>>,
     query: Query<(Instance<Square>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
@@ -60,7 +60,7 @@ fn build_square_view(
 struct Circle;
 
 fn build_circle_view(
-    event: On<Add, Viewable<Shape>>,
+    event: On<Add<Viewable<Shape>>>,
     query: Query<(Instance<Circle>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
@@ -84,7 +84,7 @@ fn build_circle_view(
 struct Special;
 
 fn build_special_view(
-    event: On<Add, Viewable<Shape>>,
+    event: On<Add<Viewable<Shape>>>,
     query: Query<(Instance<Special>, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
@@ -190,7 +190,7 @@ impl ViewableKind for Shape {
 }
 
 fn build_shape_view(
-    event: On<Add, Viewable<Shape>>,
+    event: On<Add<Viewable<Shape>>>,
     query: Query<(Instance<Shape>, &Position, &Viewable<Shape>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,

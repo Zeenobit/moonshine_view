@@ -11,15 +11,15 @@ homepage = "https://github.com/Zeenobit/moonshine_view"
 repository = "https://github.com/Zeenobit/moonshine_view"
 
 [dependencies]
-bevy_app = "0.19"
-bevy_ecs = "0.19"
-bevy_utils = "0.19"
-bevy_platform = "0.19"
-bevy_log = "0.19"
-bevy_transform = { version = "0.19", optional = true }
-moonshine-kind = { version = "0.5" }
-moonshine-save = { version = "0.7" }
-moonshine-object = { version = "0.4", optional = true }
+bevy_app = "0.20"
+bevy_ecs = "0.20"
+bevy_utils = "0.20"
+bevy_platform = "0.20"
+bevy_log = "0.20"
+bevy_transform = { version = "0.20", optional = true }
+moonshine-kind = { version = "0.6" }
+moonshine-save = { version = "0.8" }
+moonshine-object = { version = "0.5", optional = true }
 
 [features]
 default = []
@@ -27,5 +27,5 @@ ext = ["bevy_transform", "moonshine-object"]
 
 [dev-dependencies]
 rand = "0.9"
-bevy = "0.19"
-moonshine-core = "0.6"
+bevy = "0.20"
+moonshine-core = "0.7"

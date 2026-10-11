@@ -35,7 +35,7 @@ struct Bird;
 impl ViewableKind for Bird {}
 
 fn build_bird_view(
-    event: On<Add, Viewable<Bird>>,
+    event: On<Add<Viewable<Bird>>>,
     query: Query<&Viewable<Bird>>,
     mut commands: Commands
 ){
