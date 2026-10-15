@@ -1,11 +1,12 @@
 use crate::prelude::*;
+
 use bevy_ecs::prelude::*;
 use bevy_transform::prelude::*;
 use moonshine_kind::prelude::*;
 use moonshine_object::prelude::*;
 
 /// A [`System`] which updates the [`Transform`] of a [`View<T>`] from its associated [`Viewable<T>`].
-pub fn push_transform<T: ViewableKind>(
+pub fn push_transform<T: Kind>(
     viewables: Query<InstanceRef<Viewable<T>>>,
     mut transform_query: Query<&mut Transform>,
 ) {
@@ -27,7 +28,7 @@ pub fn push_transform<T: ViewableKind>(
 ///
 /// Given a [`Kind`] T and P (parent), any [`Viewable<T>`] with a [`Viewable<P>`] ancestor will have its [`View<T>`]
 /// attached to the associated [`View<P>`].
-pub fn push_hierarchy<T: ViewableKind, P: ViewableKind>(
+pub fn push_hierarchy<T: Kind, P: Kind>(
     parents_changed: Objects<
         Viewable<T>,
         Or<(

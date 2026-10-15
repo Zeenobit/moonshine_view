@@ -10,8 +10,6 @@ fn main() {
         .register_type::<Square>()
         .register_type::<Circle>()
         .register_type::<Special>()
-        // Register Shapes as viewable:
-        .register_viewable::<Shape>()
         // Add observers to build views:
         .add_observer(build_shape_view)
         .add_observer(build_square_view)
@@ -35,23 +33,21 @@ fn main() {
 struct Square;
 
 fn build_square_view(
-    event: On<Add<Viewable<Shape>>>,
-    query: Query<(Instance<Square>, &Viewable<Shape>)>,
+    event: On<Add<Square>>,
+    query: Query<Instance<Shape>>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok((instance, viewable)) = query.get(event.entity) else {
-        // Target is not a Square
-        return;
-    };
+    let shape = query.get(event.entity).unwrap();
+    commands.spawn((
+        ViewOf(shape),
+        Gizmo {
+            handle: assets.square.clone(),
+            ..default()
+        },
+    ));
 
-    info!("{instance} is observed!");
-
-    let view = viewable.view();
-    commands.instance(view).with_child(Gizmo {
-        handle: assets.square.clone(),
-        ..default()
-    });
+    info!("square view spawned for {shape}");
 }
 
 #[derive(Component, Default, Reflect)]
@@ -60,22 +56,21 @@ fn build_square_view(
 struct Circle;
 
 fn build_circle_view(
-    event: On<Add<Viewable<Shape>>>,
-    query: Query<(Instance<Circle>, &Viewable<Shape>)>,
+    event: On<Add<Circle>>,
+    query: Query<Instance<Shape>>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok((instance, viewable)) = query.get(event.entity) else {
-        // Target is not a Circle
-        return;
-    };
+    let shape = query.get(event.entity).unwrap();
+    commands.spawn((
+        ViewOf(shape),
+        Gizmo {
+            handle: assets.circle.clone(),
+            ..default()
+        },
+    ));
 
-    info!("{instance} is observed!");
-
-    commands.instance(viewable.view()).with_child(Gizmo {
-        handle: assets.circle.clone(),
-        ..default()
-    });
+    info!("circle view spawned for {shape}");
 }
 
 #[derive(Component, Default, Reflect)]
@@ -84,22 +79,22 @@ fn build_circle_view(
 struct Special;
 
 fn build_special_view(
-    event: On<Add<Viewable<Shape>>>,
-    query: Query<(Instance<Special>, &Viewable<Shape>)>,
+    event: On<Add<ViewOf<Shape>>>,
+    view_query: Query<InstanceRef<ViewOf<Shape>>>,
+    shape_query: Query<(Instance<Shape>, Has<Special>)>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let Ok((instance, viewable)) = query.get(event.entity) else {
-        // Target is not a Special shape
-        return;
-    };
+    let view = view_query.get(event.entity).unwrap();
+    let (shape, is_special) = shape_query.get(view.viewable().entity()).unwrap();
+    if is_special {
+        commands.instance(view.instance()).with_child(Gizmo {
+            handle: assets.special.clone(),
+            ..default()
+        });
 
-    info!("{instance} is observed!");
-
-    commands.instance(viewable.view()).with_child(Gizmo {
-        handle: assets.special.clone(),
-        ..default()
-    });
+        info!("special view spawned for {shape}");
+    }
 }
 
 #[derive(Resource)]
@@ -183,28 +178,21 @@ impl Kind for Shape {
     type Filter = (With<Position>, With<Save>);
 }
 
-impl ViewableKind for Shape {
-    fn view_bundle() -> impl Bundle {
-        (Unload, GlobalTransform::default(), Transform::default())
-    }
-}
-
 fn build_shape_view(
-    event: On<Add<Viewable<Shape>>>,
-    query: Query<(Instance<Shape>, &Position, &Viewable<Shape>)>,
+    event: On<Add<ViewOf<Shape>>>,
+    view_query: Query<InstanceRef<ViewOf<Shape>>>,
     assets: Res<ShapeAssets>,
     mut commands: Commands,
 ) {
-    let (instance, position, viewable) = query.get(event.entity).unwrap();
-    info!("{instance} is observed!");
-    let transform: Transform = position.into();
-    commands.instance(viewable.view()).insert((
-        transform,
-        Gizmo {
-            handle: assets.base.clone(),
-            ..default()
-        },
-    ));
+    let view = view_query.get(event.entity).unwrap();
+    let shape = view.viewable();
+
+    commands.instance(view.instance()).with_child(Gizmo {
+        handle: assets.base.clone(),
+        ..default()
+    });
+
+    info!("base view spawned for {shape}");
 }
 
 fn setup(mut commands: Commands) {
@@ -228,18 +216,20 @@ fn handle_mouse(
 ) {
     if mouse.just_pressed(MouseButton::Left) {
         let position = Position::random_in_circle(Vec2::ZERO, 200.);
-        info!("Spawned a Square at {}", position.0);
-        let mut shape = commands.spawn((Square, position));
+        info!("spawned a square at {}", position.0);
         if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
-            shape.insert(Special);
+            commands.spawn((Square, position, Special));
+        } else {
+            commands.spawn((Square, position));
         }
     }
     if mouse.just_pressed(MouseButton::Right) {
         let position = Position::random_in_circle(Vec2::ZERO, 200.);
-        info!("Spawned a Circle at {}", position.0);
-        let mut shape = commands.spawn((Circle, position));
+        info!("spawned a circle at {}", position.0);
         if keyboard.pressed(KeyCode::ControlLeft) || keyboard.pressed(KeyCode::ControlRight) {
-            shape.insert(Special);
+            commands.spawn((Circle, position, Special));
+        } else {
+            commands.spawn((Circle, position));
         }
     }
 }
@@ -281,9 +271,10 @@ fn handle_shape_position_changed(
     mut transform: Query<&mut Transform>,
 ) {
     for (viewable, position) in shapes.iter() {
-        let view = viewable.view();
-        let mut transform = transform.get_mut(view.entity()).unwrap();
-        *transform = position.into();
+        for view in viewable.views() {
+            let mut transform = transform.get_mut(view.entity()).unwrap();
+            *transform = position.into();
+        }
     }
 }
 

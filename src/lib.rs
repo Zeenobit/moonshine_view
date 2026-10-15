@@ -2,25 +2,27 @@
 #![warn(missing_docs)]
 #![allow(deprecated)] // TODO: Remove deprecated code
 
+use std::fmt::{self, Debug};
+
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bevy_ecs::relationship::Relationship;
-use moonshine_kind::prelude::*;
+use moonshine_kind::{prelude::*, InstanceVec};
 use moonshine_save::load::Unload;
 
 /// Common elements for the view system.
 pub mod prelude {
-    pub use super::{RegisterViewable, View, Viewable, ViewableKind};
+    pub use super::{ViewOf, Viewable};
+
+    pub use super::{RegisterViewable, View};
 }
 
 /// Collection of utilities to extend the Moonshine Model/View framework.
 #[cfg(feature = "ext")]
 pub mod ext;
 
-#[cfg(test)]
-mod tests;
-
 /// Trait used to register a [`ViewableKind`] with an [`App`].
+#[deprecated]
 pub trait RegisterViewable {
     /// Adds a given [`Kind`] as viewable.
     fn register_viewable<T: ViewableKind>(&mut self) -> &mut Self;
@@ -34,6 +36,7 @@ impl RegisterViewable for App {
 }
 
 /// A trait used to define a [`Kind`] as viewable.
+#[deprecated]
 pub trait ViewableKind: Kind {
     /// Returns the default view [`Bundle`] for this [`Kind`].
     ///
@@ -51,35 +54,41 @@ pub trait ViewableKind: Kind {
 ///
 /// A "view entity" is analogous to the View in the Model-View-Controller (MVC) pattern.
 #[derive(Component)]
+#[require(Unload)]
 #[component(on_insert = <Self as Relationship>::on_insert)]
 #[component(on_discard = <Self as Relationship>::on_discard)]
-pub struct View<T: ViewableKind> {
-    viewable: Instance<T>,
-}
+pub struct ViewOf<T: Kind>(pub Instance<T>);
 
-impl<T: ViewableKind> View<T> {
+#[deprecated]
+pub type View<T> = ViewOf<T>;
+
+impl<T: Kind> ViewOf<T> {
     /// Returns the associated viewable entity.
     pub fn viewable(&self) -> Instance<T> {
-        self.viewable
+        self.0
     }
 }
 
-impl<T: ViewableKind> Relationship for View<T> {
+impl<T: Kind> Debug for ViewOf<T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("ViewOf").field(&self.0).finish()
+    }
+}
+
+impl<T: Kind> Relationship for ViewOf<T> {
     type RelationshipTarget = Viewable<T>;
 
     fn get(&self) -> Entity {
-        self.viewable.entity()
+        self.0.entity()
     }
 
     fn from(entity: Entity) -> Self {
-        Self {
-            viewable: unsafe { Instance::from_entity_unchecked(entity) },
-        }
+        Self(unsafe { Instance::from_entity_unchecked(entity) })
     }
 
     fn set_risky(&mut self, entity: Entity) {
         unsafe {
-            *self.viewable.as_entity_mut() = entity;
+            *self.0.as_entity_mut() = entity;
         }
     }
 }
@@ -87,51 +96,62 @@ impl<T: ViewableKind> Relationship for View<T> {
 /// A [`Component`] which represents an [`Entity`] associated with a [`View`].
 ///
 /// A "viewable entity" is analogous to the Model in the Model-View-Controller (MVC) pattern.
-#[derive(Component, Debug)]
+#[derive(Component)]
 #[component(on_discard = <Self as RelationshipTarget>::on_discard)]
 #[component(on_despawn = <Self as RelationshipTarget>::on_despawn)]
-pub struct Viewable<T: ViewableKind> {
-    view: Instance<View<T>>,
+pub struct Viewable<T: Kind> {
+    views: InstanceVec<ViewOf<T>>,
 }
 
-impl<T: ViewableKind> Viewable<T> {
+impl<T: Kind> Viewable<T> {
     /// Spawns a [`View<T>`] for a given viewable instance and returns it.
     ///
     /// This function is useful for spawning views manually when you to modify the view before the observers start reacting.
+    #[deprecated]
     pub fn spawn_view<'a>(
         target: Instance<T>,
         commands: &'a mut Commands,
-    ) -> InstanceCommands<'a, View<T>> {
-        let view_entity = commands.spawn((T::view_bundle(), View { viewable: target }));
+    ) -> InstanceCommands<'a, ViewOf<T>>
+    where
+        T: ViewableKind,
+    {
+        let view_entity = commands.spawn((T::view_bundle(), ViewOf(target)));
         unsafe { InstanceCommands::from_entity_unchecked(view_entity) }
     }
 
     /// Returns the [`View`] [`Instance`] associated with this [`Viewable`].
-    pub fn view(&self) -> Instance<View<T>> {
-        self.view
+    #[deprecated]
+    pub fn view(&self) -> Instance<ViewOf<T>> {
+        self.views[0]
+    }
+
+    /// Returns all [`View`] instances associated with this [`Viewable`].
+    pub fn views(&self) -> impl ExactSizeIterator<Item = Instance<ViewOf<T>>> + '_ {
+        self.views.iter().copied()
     }
 }
 
-impl<T: ViewableKind> RelationshipTarget for Viewable<T> {
+impl<T: Kind> RelationshipTarget for Viewable<T> {
     const LINKED_SPAWN: bool = true;
 
-    type Relationship = View<T>;
+    type Relationship = ViewOf<T>;
 
-    type Collection = Instance<View<T>>;
+    type Collection = InstanceVec<ViewOf<T>>;
 
     fn collection(&self) -> &Self::Collection {
-        &self.view
+        &self.views
     }
 
     fn collection_mut_risky(&mut self) -> &mut Self::Collection {
-        &mut self.view
+        &mut self.views
     }
 
     fn from_collection_risky(collection: Self::Collection) -> Self {
-        Self { view: collection }
+        Self { views: collection }
     }
 }
 
+#[deprecated]
 fn trigger_build_view<T: ViewableKind>(
     query: Query<Instance<T>, Without<Viewable<T>>>,
     mut commands: Commands,
